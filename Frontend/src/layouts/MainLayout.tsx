@@ -35,7 +35,9 @@ export const MainLayout: React.FC = () => {
   };
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    if (theme === 'system') setTheme('light');
+    else if (theme === 'light') setTheme('dark');
+    else setTheme('system');
   };
 
   const navItems = [
@@ -116,9 +118,18 @@ export const MainLayout: React.FC = () => {
             
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer flex items-center justify-center relative"
+              title={`Theme: ${theme}`}
             >
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              {theme === 'light' && <Sun className="w-4 h-4" />}
+              {theme === 'dark' && <Moon className="w-4 h-4" />}
+              {theme === 'system' && (
+                <div className="relative">
+                  <Sun className="w-4 h-4 absolute opacity-0 dark:opacity-100 transition-opacity" />
+                  <Moon className="w-4 h-4 dark:opacity-0 transition-opacity" />
+                  <span className="absolute -bottom-1 -right-1 text-[7px] font-bold bg-primary-500 text-white rounded-full w-[10px] h-[10px] flex items-center justify-center">A</span>
+                </div>
+              )}
             </button>
           </div>
 
@@ -148,9 +159,17 @@ export const MainLayout: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl text-slate-400 dark:text-slate-500"
+            className="p-2 rounded-xl text-slate-400 dark:text-slate-500 flex items-center justify-center relative"
           >
-            {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            {theme === 'light' && <Sun className="w-4 h-4" />}
+            {theme === 'dark' && <Moon className="w-4 h-4" />}
+            {theme === 'system' && (
+              <div className="relative">
+                <Sun className="w-4 h-4 absolute opacity-0 dark:opacity-100 transition-opacity" />
+                <Moon className="w-4 h-4 dark:opacity-0 transition-opacity" />
+                <span className="absolute -bottom-1 -right-1 text-[7px] font-bold bg-primary-500 text-white rounded-full w-[10px] h-[10px] flex items-center justify-center">A</span>
+              </div>
+            )}
           </button>
           <Link to="/profile">
             <Avatar src={currentUser.avatarUrl} name={currentUser.name} avatarColor={currentUser.avatarColor} size="sm" />

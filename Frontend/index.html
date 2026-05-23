@@ -4,7 +4,30 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>SplitBill</title>
+    <script>
+      try {
+        const stored = localStorage.getItem('splitbill-storage');
+        let theme = 'system';
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.state && parsed.state.theme) {
+            theme = parsed.state.theme;
+          }
+        }
+        
+        let isDark = theme === 'dark';
+        if (theme === 'system') {
+          isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

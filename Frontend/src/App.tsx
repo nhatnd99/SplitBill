@@ -22,10 +22,25 @@ const App: React.FC = () => {
   const { theme } = useAppStore();
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const applyTheme = () => {
+      let isDark = theme === 'dark';
+      if (theme === 'system') {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    applyTheme();
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [theme]);
 

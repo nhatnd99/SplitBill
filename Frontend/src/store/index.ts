@@ -15,7 +15,7 @@ export interface Toast {
 
 interface AppState {
   // Theme & Settings
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'system';
   language: 'vi' | 'en';
   currency: 'VND' | 'USD' | 'EUR';
   
@@ -32,7 +32,7 @@ interface AppState {
   toasts: Toast[];
   
   // Setters & Actions
-  setTheme: (theme: 'light' | 'dark') => void;
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setLanguage: (lang: 'vi' | 'en') => void;
   setCurrency: (curr: 'VND' | 'USD' | 'EUR') => void;
   setCurrentUser: (user: User | null) => void;
@@ -68,7 +68,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       // Theme & Settings default
-      theme: 'light',
+      theme: 'system',
       language: 'vi',
       currency: 'VND',
       
@@ -86,7 +86,11 @@ export const useAppStore = create<AppState>()(
       // Setters
       setTheme: (theme) => {
         set({ theme });
-        if (theme === 'dark') {
+        let isDark = theme === 'dark';
+        if (theme === 'system' && typeof window !== 'undefined') {
+          isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        if (isDark) {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
