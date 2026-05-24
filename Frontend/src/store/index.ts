@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import type { User, Group, Expense, Activity, UserBalance, GroupBalanceSummary, SplitType, GroupCategory } from '../types';
+import { persist } from 'zustand/middleware';
+import type { User, Group, Expense, Activity, UserBalance, GroupBalanceSummary, GroupCategory } from '../types';
 import { mockUsers } from '../mock/mockUsers';
 import { mockGroups } from '../mock/mockGroups';
 import { mockExpenses } from '../mock/mockExpenses';
@@ -18,7 +18,7 @@ interface AppState {
   theme: 'light' | 'dark' | 'system';
   language: 'vi' | 'en';
   currency: 'VND' | 'USD' | 'EUR';
-  
+
   // Data lists
   currentUser: User | null;
   users: User[];
@@ -27,28 +27,29 @@ interface AppState {
   activities: Activity[];
   globalBalances: UserBalance[];
   groupBalances: Record<string, GroupBalanceSummary>;
-  
+
   // Toasts
   toasts: Toast[];
-  
+
   // Setters & Actions
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setLanguage: (lang: 'vi' | 'en') => void;
   setCurrency: (curr: 'VND' | 'USD' | 'EUR') => void;
   setCurrentUser: (user: User | null) => void;
-  
+
   // Group Operations
   joinGroup: (inviteCode: string, userName: string, avatarColor: string) => string | null;
   addGroup: (name: string, description: string, category: GroupCategory, userName: string, avatarColor: string) => string;
   updateGroup: (groupId: string, data: Partial<Group>) => void;
-  
+  addFund: (groupId: string, amount: number, note: string) => void;
+
   // Expense Operations
   addExpense: (data: Omit<Expense, 'id' | 'date' | 'createdBy'>) => void;
   deleteExpense: (expenseId: string) => void;
-  
+
   // Debt Settlement
   settleDebt: (groupId: string, payerId: string, recipientId: string, amount: number) => void;
-  
+
   // Toast notifications
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
@@ -71,7 +72,7 @@ export const useAppStore = create<AppState>()(
       theme: 'system',
       language: 'vi',
       currency: 'VND',
-      
+
       // Data lists initial
       currentUser: null, // Starts null, user enters name to join/create
       users: mockUsers,
@@ -80,9 +81,9 @@ export const useAppStore = create<AppState>()(
       activities: mockActivities,
       globalBalances: mockGlobalBalances,
       groupBalances: mockGroupBalances,
-      
+
       toasts: [],
-      
+
       // Setters
       setTheme: (theme) => {
         set({ theme });
@@ -96,12 +97,12 @@ export const useAppStore = create<AppState>()(
           document.documentElement.classList.remove('dark');
         }
       },
-      
+
       setLanguage: (language) => set({ language }),
       setCurrency: (currency) => set({ currency }),
-      
+
       setCurrentUser: (currentUser) => set({ currentUser }),
-      
+
       // Toast operations
       addToast: (message, type = 'info') => {
         const id = Math.random().toString(36).substring(7);
@@ -112,7 +113,7 @@ export const useAppStore = create<AppState>()(
           get().removeToast(id);
         }, 4000);
       },
-      
+
       removeToast: (id) => set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id),
       })),
@@ -183,7 +184,7 @@ export const useAppStore = create<AppState>()(
           name: userName,
           avatarColor,
         };
-        
+
         const newGroup: Group = {
           id: newGroupId,
           name,
@@ -195,8 +196,10 @@ export const useAppStore = create<AppState>()(
           updatedAt: new Date().toISOString(),
           category,
           totalExpense: 0,
+          fundBalance: 0,
+          fundHistory: [],
         };
-        
+
         const newGroupBalances: GroupBalanceSummary = {
           groupId: newGroupId,
           totalOwed: 0,
@@ -204,7 +207,7 @@ export const useAppStore = create<AppState>()(
           youAreOwed: 0,
           balances: [],
         };
-        
+
         const newActivity: Activity = {
           id: generateId('act'),
           groupId: newGroupId,
@@ -218,7 +221,7 @@ export const useAppStore = create<AppState>()(
           },
           timestamp: new Date().toISOString(),
         };
-        
+
         set((state) => ({
           currentUser: newUser,
           users: [...state.users, newUser],
@@ -229,7 +232,7 @@ export const useAppStore = create<AppState>()(
             [newGroupId]: newGroupBalances,
           },
         }));
-        
+
         get().addToast(
           get().language === 'vi' ? `Đã tạo nhóm "${name}" thành công!` : `Group "${name}" created successfully!`,
           'success'
@@ -237,26 +240,59 @@ export const useAppStore = create<AppState>()(
 
         return newGroupId;
       },
-      
+
       updateGroup: (groupId, data) => {
         set((state) => ({
           groups: state.groups.map(g => g.id === groupId ? { ...g, ...data, updatedAt: new Date().toISOString() } : g),
         }));
       },
-      
+
+      addFund: (groupId, amount, note) => {
+        const creator = get().currentUser;
+        if (!creator) return;
+
+        set((state) => {
+          const updatedGroups = state.groups.map((g) => {
+            if (g.id === groupId) {
+              const newTransaction = {
+                id: generateId('fund'),
+                amount,
+                date: new Date().toISOString(),
+                userId: creator.id,
+                userName: creator.name,
+                note,
+              };
+              return {
+                ...g,
+                fundBalance: (g.fundBalance || 0) + amount,
+                fundHistory: [newTransaction, ...(g.fundHistory || [])],
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return g;
+          });
+          return { groups: updatedGroups };
+        });
+
+        get().addToast(
+          get().language === 'vi' ? 'Đã cập nhật quỹ nhóm!' : 'Group fund updated!',
+          'success'
+        );
+      },
+
       // Expense Operations
       addExpense: (data) => {
         const newId = generateId('exp');
         const creator = get().currentUser;
         if (!creator) return;
-        
+
         const newExpense: Expense = {
           ...data,
           id: newId,
           date: new Date().toISOString(),
           createdBy: creator.id,
         };
-        
+
         const newActivity: Activity = {
           id: generateId('act'),
           groupId: data.groupId,
@@ -272,70 +308,90 @@ export const useAppStore = create<AppState>()(
           },
           timestamp: new Date().toISOString(),
         };
-        
+
         set((state) => {
+          const fundSource = data.paymentSources.find(s => s.type === 'GROUP_FUND');
+          const fundUsed = fundSource ? fundSource.amount : 0;
+          const memberSource = data.paymentSources.find(s => s.type === 'MEMBER');
+          const memberPaidAmount = memberSource ? memberSource.amount : 0;
+          const payerId = memberSource?.memberId;
+
           // Update Group Total Expense
           const updatedGroups = state.groups.map((g) => {
             if (g.id === data.groupId) {
-              return { ...g, totalExpense: g.totalExpense + data.amount, updatedAt: new Date().toISOString() };
+              return {
+                ...g,
+                totalExpense: g.totalExpense + data.amount,
+                fundBalance: Math.max(0, (g.fundBalance || 0) - fundUsed),
+                updatedAt: new Date().toISOString()
+              };
             }
             return g;
           });
-          
+
           // Update local balances for this group
           const currentGrpBalances = state.groupBalances[data.groupId];
           let updatedGrpBalances = { ...currentGrpBalances };
-          
+
           if (currentGrpBalances) {
-            const isPaidByMe = data.paidBy === creator.id;
+            const isPaidByMe = payerId === creator.id;
             let youAreOwedDelta = 0;
             let youOweDelta = 0;
-            
+
+            const mySplit = data.splits.find(s => s.userId === creator.id);
+            const mySplitAmount = mySplit ? mySplit.amount : 0;
+            const myDebtCreatingAmount = data.amount > 0 ? mySplitAmount * (memberPaidAmount / data.amount) : 0;
+            const totalOwedDelta = isPaidByMe ? (memberPaidAmount - myDebtCreatingAmount) : -myDebtCreatingAmount;
+
             const nextBalances = currentGrpBalances.balances.map((b) => {
               const split = data.splits.find(s => s.userId === b.userId);
               const splitAmount = split ? split.amount : 0;
-              
+              const debtCreatingAmount = data.amount > 0 ? splitAmount * (memberPaidAmount / data.amount) : 0;
+
               let delta = 0;
               if (isPaidByMe) {
-                delta = splitAmount;
-                youAreOwedDelta += splitAmount;
+                delta = debtCreatingAmount;
+                youAreOwedDelta += debtCreatingAmount;
               } else {
-                if (b.userId === data.paidBy) {
-                  const mySplit = data.splits.find(s => s.userId === creator.id);
-                  const mySplitAmount = mySplit ? mySplit.amount : 0;
-                  delta = -mySplitAmount;
-                  youOweDelta += mySplitAmount;
+                if (b.userId === payerId) {
+                  delta = -myDebtCreatingAmount;
+                  youOweDelta += myDebtCreatingAmount;
                 }
               }
               return { ...b, amount: b.amount + delta };
             });
-            
+
             updatedGrpBalances = {
               groupId: data.groupId,
-              totalOwed: currentGrpBalances.totalOwed + (isPaidByMe ? (data.amount - (data.splits.find(s => s.userId === creator.id)?.amount || 0)) : -(data.splits.find(s => s.userId === creator.id)?.amount || 0)),
+              totalOwed: currentGrpBalances.totalOwed + totalOwedDelta,
               youAreOwed: currentGrpBalances.youAreOwed + youAreOwedDelta,
               youOwe: currentGrpBalances.youOwe + youOweDelta,
               balances: nextBalances,
             };
           }
-          
+
           // Global balances
           const nextGlobalBalances = state.globalBalances.map((b) => {
             const split = data.splits.find(s => s.userId === b.userId);
             if (split) {
-              const isPaidByMe = data.paidBy === creator.id;
+              const splitAmount = split.amount;
+              const debtCreatingAmount = data.amount > 0 ? splitAmount * (memberPaidAmount / data.amount) : 0;
+              const mySplit = data.splits.find(s => s.userId === creator.id);
+              const mySplitAmount = mySplit ? mySplit.amount : 0;
+              const myDebtCreatingAmount = data.amount > 0 ? mySplitAmount * (memberPaidAmount / data.amount) : 0;
+
+              const isPaidByMe = payerId === creator.id;
               let delta = 0;
               if (isPaidByMe) {
-                delta = split.amount;
-              } else if (b.userId === data.paidBy) {
-                const mySplit = data.splits.find(s => s.userId === creator.id);
-                delta = -(mySplit ? mySplit.amount : 0);
+                delta = debtCreatingAmount;
+              } else if (b.userId === payerId) {
+                delta = -myDebtCreatingAmount;
               }
               return { ...b, amount: b.amount + delta };
             }
             return b;
           });
-          
+
           return {
             expenses: [newExpense, ...state.expenses],
             activities: [newActivity, ...state.activities],
@@ -347,17 +403,17 @@ export const useAppStore = create<AppState>()(
             globalBalances: nextGlobalBalances,
           };
         });
-        
+
         get().addToast(
           get().language === 'vi' ? `Đã thêm chi phí "${data.title}"!` : `Added expense "${data.title}"!`,
           'success'
         );
       },
-      
+
       deleteExpense: (expenseId) => {
         const expense = get().expenses.find(e => e.id === expenseId);
         if (!expense) return;
-        
+
         const creator = get().currentUser;
         if (!creator) return;
 
@@ -375,51 +431,66 @@ export const useAppStore = create<AppState>()(
           },
           timestamp: new Date().toISOString(),
         };
-        
+
         set((state) => {
+          const fundSource = expense.paymentSources?.find(s => s.type === 'GROUP_FUND');
+          const fundUsed = fundSource ? fundSource.amount : 0;
+          const memberSource = expense.paymentSources?.find(s => s.type === 'MEMBER');
+          const memberPaidAmount = memberSource ? memberSource.amount : 0;
+          const payerId = memberSource?.memberId;
+
           const updatedGroups = state.groups.map((g) => {
             if (g.id === expense.groupId) {
-              return { ...g, totalExpense: Math.max(0, g.totalExpense - expense.amount), updatedAt: new Date().toISOString() };
+              return {
+                ...g,
+                totalExpense: Math.max(0, g.totalExpense - expense.amount),
+                fundBalance: (g.fundBalance || 0) + fundUsed,
+                updatedAt: new Date().toISOString()
+              };
             }
             return g;
           });
-          
+
           const currentGrpBalances = state.groupBalances[expense.groupId];
           let updatedGrpBalances = { ...currentGrpBalances };
-          
+
           if (currentGrpBalances) {
-            const isPaidByMe = expense.paidBy === creator.id;
+            const isPaidByMe = payerId === creator.id;
             let youAreOwedDelta = 0;
             let youOweDelta = 0;
-            
+
+            const mySplit = expense.splits.find(s => s.userId === creator.id);
+            const mySplitAmount = mySplit ? mySplit.amount : 0;
+            const myDebtCreatingAmount = expense.amount > 0 ? mySplitAmount * (memberPaidAmount / expense.amount) : 0;
+            const totalOwedDelta = isPaidByMe ? (memberPaidAmount - myDebtCreatingAmount) : -myDebtCreatingAmount;
+
             const nextBalances = currentGrpBalances.balances.map((b) => {
               const split = expense.splits.find(s => s.userId === b.userId);
               const splitAmount = split ? split.amount : 0;
-              
+              const debtCreatingAmount = expense.amount > 0 ? splitAmount * (memberPaidAmount / expense.amount) : 0;
+
               let delta = 0;
               if (isPaidByMe) {
-                delta = -splitAmount;
-                youAreOwedDelta += splitAmount;
+                delta = -debtCreatingAmount;
+                youAreOwedDelta += debtCreatingAmount;
               } else {
-                if (b.userId === expense.paidBy) {
-                  const mySplit = expense.splits.find(s => s.userId === creator.id);
-                  const mySplitAmount = mySplit ? mySplit.amount : 0;
-                  delta = mySplitAmount;
-                  youOweDelta += mySplitAmount;
+                if (b.userId === payerId) {
+                  delta = myDebtCreatingAmount;
+                  youOweDelta += myDebtCreatingAmount;
                 }
               }
               return { ...b, amount: b.amount + delta };
             });
-            
+
             updatedGrpBalances = {
               groupId: expense.groupId,
-              totalOwed: currentGrpBalances.totalOwed - (isPaidByMe ? (expense.amount - (expense.splits.find(s => s.userId === creator.id)?.amount || 0)) : -(expense.splits.find(s => s.userId === creator.id)?.amount || 0)),
+              totalOwed: currentGrpBalances.totalOwed - totalOwedDelta,
               youAreOwed: Math.max(0, currentGrpBalances.youAreOwed - youAreOwedDelta),
               youOwe: Math.max(0, currentGrpBalances.youOwe - youOweDelta),
               balances: nextBalances,
             };
           }
-          
+
           return {
             expenses: state.expenses.filter((e) => e.id !== expenseId),
             activities: [newActivity, ...state.activities],
@@ -430,13 +501,13 @@ export const useAppStore = create<AppState>()(
             },
           };
         });
-        
+
         get().addToast(
           get().language === 'vi' ? `Đã xóa chi phí "${expense.title}"` : `Deleted expense "${expense.title}"`,
           'info'
         );
       },
-      
+
       settleDebt: (groupId, payerId, recipientId, amount) => {
         const creator = get().currentUser;
         if (!creator) return;
@@ -444,7 +515,7 @@ export const useAppStore = create<AppState>()(
         const payerName = get().users.find(u => u.id === payerId)?.name || 'Người dùng';
         const recipientName = get().users.find(u => u.id === recipientId)?.name || 'Người nhận';
         const payerAvatar = get().users.find(u => u.id === payerId)?.avatarColor || creator.avatarColor;
-        
+
         const newActivity: Activity = {
           id: generateId('act'),
           groupId,
@@ -460,18 +531,18 @@ export const useAppStore = create<AppState>()(
           },
           timestamp: new Date().toISOString(),
         };
-        
+
         set((state) => {
           const currentGrpBalances = state.groupBalances[groupId];
           let updatedGrpBalances = { ...currentGrpBalances };
-          
+
           if (currentGrpBalances) {
             const isPayerMe = payerId === creator.id;
             const isRecipientMe = recipientId === creator.id;
-            
+
             let youAreOwedDelta = 0;
             let youOweDelta = 0;
-            
+
             const nextBalances = currentGrpBalances.balances.map((b) => {
               let currentAmount = b.amount;
               if (isPayerMe && b.userId === recipientId) {
@@ -483,7 +554,7 @@ export const useAppStore = create<AppState>()(
               }
               return { ...b, amount: currentAmount };
             });
-            
+
             updatedGrpBalances = {
               groupId,
               totalOwed: currentGrpBalances.totalOwed + (isPayerMe ? amount : -amount),
@@ -492,7 +563,7 @@ export const useAppStore = create<AppState>()(
               balances: nextBalances,
             };
           }
-          
+
           const nextGlobalBalances = state.globalBalances.map((b) => {
             let currentAmount = b.amount;
             if (payerId === creator.id && b.userId === recipientId) {
@@ -502,7 +573,7 @@ export const useAppStore = create<AppState>()(
             }
             return { ...b, amount: currentAmount };
           });
-          
+
           return {
             activities: [newActivity, ...state.activities],
             groupBalances: {
@@ -512,7 +583,7 @@ export const useAppStore = create<AppState>()(
             globalBalances: nextGlobalBalances,
           };
         });
-        
+
         get().addToast(
           get().language === 'vi'
             ? `${payerName} đã chuyển ${amount.toLocaleString('vi-VN')}đ cho ${recipientName} để thanh toán nợ!`
@@ -523,9 +594,9 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'splitbill-storage',
-      partialize: (state) => ({ 
-        theme: state.theme, 
-        language: state.language, 
+      partialize: (state) => ({
+        theme: state.theme,
+        language: state.language,
         currency: state.currency,
         currentUser: state.currentUser,
         users: state.users,

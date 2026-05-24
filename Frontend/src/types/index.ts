@@ -21,6 +21,17 @@ export interface Group {
   updatedAt: string;
   category: GroupCategory;
   totalExpense: number;
+  fundBalance?: number;
+  fundHistory?: FundTransaction[];
+}
+
+export interface FundTransaction {
+  id: string;
+  amount: number;
+  date: string;
+  userId: string;
+  userName: string;
+  note: string;
 }
 
 export type SplitType = 'equal' | 'percentage' | 'exact' | 'item';
@@ -39,12 +50,20 @@ export interface BillItem {
   sharedBy: string[]; // User IDs
 }
 
+export type PaymentSourceType = 'GROUP_FUND' | 'MEMBER';
+
+export interface PaymentSource {
+  type: PaymentSourceType;
+  memberId?: string;
+  amount: number;
+}
+
 export interface Expense {
   id: string;
   groupId: string;
   title: string;
   amount: number;
-  paidBy: string; // User ID who paid
+  paymentSources: PaymentSource[];
   splitType: SplitType;
   splits: ExpenseSplit[];
   items?: BillItem[]; // For item-based split

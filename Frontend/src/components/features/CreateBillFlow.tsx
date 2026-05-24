@@ -47,7 +47,12 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
 
   const handleNext = () => {
     if (step === 1) {
-      if (!title || !amount || !selectedGroupId || !paidBy) {
+      const numAmount = parseFloat(amount) || 0;
+      const groupFundBalance = targetGroup?.fundBalance || 0;
+      const coveredByFund = Math.min(numAmount, groupFundBalance);
+      const remainingToPay = Math.max(0, numAmount - coveredByFund);
+
+      if (!title || !amount || !selectedGroupId || (remainingToPay > 0 && !paidBy)) {
         addToast(language === 'vi' ? 'Vui lòng nhập đầy đủ thông tin' : 'Please fill all fields', 'error');
         return;
       }
@@ -107,11 +112,23 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       }));
     }
 
+    const groupFundBalance = targetGroup.fundBalance || 0;
+    const coveredByFund = Math.min(amountNum, groupFundBalance);
+    const remainingToPay = amountNum - coveredByFund;
+
+    const paymentSources: { type: 'GROUP_FUND' | 'MEMBER', amount: number, memberId?: string }[] = [];
+    if (coveredByFund > 0) {
+      paymentSources.push({ type: 'GROUP_FUND', amount: coveredByFund });
+    }
+    if (remainingToPay > 0) {
+      paymentSources.push({ type: 'MEMBER', memberId: paidBy, amount: remainingToPay });
+    }
+
     addExpense({
       groupId: selectedGroupId,
       title,
       amount: amountNum,
-      paidBy,
+      paymentSources,
       splitType,
       splits,
       category,
@@ -196,26 +213,55 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
             required
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1">
-                {language === 'vi' ? 'Người trả tiền' : 'Paid By'}
-              </label>
-              <div className="relative">
-                <select
-                  value={paidBy}
-                  onChange={(e) => setPaidBy(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 appearance-none font-bold"
-                >
-                  {targetGroup?.members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          {/* Auto Calculate Payment Coverage */}
+          {parseFloat(amount) > 0 && targetGroup && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col gap-2 mb-2">
+              <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-500">
+                <span>{language === 'vi' ? 'Tổng Chi Phí:' : 'Bill Total:'}</span>
+                <span className="text-slate-800 dark:text-slate-200">{formatCurrency(parseFloat(amount), currency)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-indigo-500">
+                <span>{language === 'vi' ? 'Dùng Quỹ Nhóm:' : 'Covered by Fund:'}</span>
+                <span>-{formatCurrency(Math.min(parseFloat(amount), targetGroup.fundBalance || 0), currency)}</span>
+              </div>
+              <div className="h-px w-full bg-slate-200 dark:bg-slate-700 my-1"></div>
+              <div className="flex items-center justify-between text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100">
+                <span>{language === 'vi' ? 'Cần Trả Thêm:' : 'Remaining to Pay:'}</span>
+                <span>{formatCurrency(Math.max(0, parseFloat(amount) - (targetGroup.fundBalance || 0)), currency)}</span>
               </div>
             </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            {parseFloat(amount) > 0 && targetGroup && (parseFloat(amount) - (targetGroup.fundBalance || 0)) > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1">
+                  {language === 'vi' ? 'Người trả phần còn lại' : 'Paid By'}
+                </label>
+                <div className="relative">
+                  <select
+                    value={paidBy}
+                    onChange={(e) => setPaidBy(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 appearance-none font-bold"
+                  >
+                    {targetGroup?.members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            ) : (
+              parseFloat(amount) > 0 && targetGroup && (
+                <div className="flex flex-col justify-center">
+                  <span className="text-xs font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-2 rounded-xl text-center border border-indigo-100 dark:border-indigo-500/20">
+                    {language === 'vi' ? 'Quỹ nhóm trả toàn bộ' : 'Fully covered by group fund'}
+                  </span>
+                </div>
+              )
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1">

@@ -13,6 +13,17 @@ export const mockGroups: Group[] = [
     updatedAt: '2026-05-20T15:30:00Z',
     category: 'trip',
     totalExpense: 14500000,
+    fundBalance: 10000000,
+    fundHistory: [
+      {
+        id: 'fund-1',
+        amount: 10000000,
+        date: '2026-05-10T10:05:00Z',
+        userId: 'user-1',
+        userName: 'Nguyễn Văn A',
+        note: 'Quỹ chung ban đầu'
+      }
+    ]
   },
   {
     id: 'group-2',

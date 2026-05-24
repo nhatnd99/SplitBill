@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
+import { GroupFundCard } from '../components/GroupFundCard';
+import { FundHistoryTab } from '../components/FundHistoryTab';
+import { AddFundModal } from '../components/AddFundModal';
 
 interface SettlementTransaction {
   payerId: string;
@@ -32,10 +35,11 @@ export const GroupDetail: React.FC = () => {
     currentUser, addToast, language, currency
   } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'bills' | 'settlements' | 'members'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'bills' | 'settlements' | 'members' | 'fund'>('overview');
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isAddFundModalOpen, setIsAddFundModalOpen] = useState(false);
 
   const group = groups.find(g => g.id === id);
   const groupExpenses = useMemo(() => {
@@ -86,14 +90,6 @@ export const GroupDetail: React.FC = () => {
 
     return transactions;
   }, [summary, group]);
-
-  const totalSettledAmount = useMemo(() => {
-    if (!groupExpenses.length) return 0;
-    // For a real app, this would sum up all "settlement" activities. 
-    // Since we don't have direct access to activities here without importing,
-    // we can calculate pending debt vs total expenses.
-    return 0; // Simplified for UI
-  }, [groupExpenses]);
 
   if (!group || !currentUser) {
     return (
@@ -232,6 +228,16 @@ export const GroupDetail: React.FC = () => {
             <Users className="w-4 h-4" />
             {language === 'vi' ? 'Thành Viên' : 'Members'}
           </button>
+          <button
+            onClick={() => setActiveTab('fund')}
+            className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'fund'
+              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+          >
+            <Wallet className="w-4 h-4" />
+            {language === 'vi' ? 'Lịch Sử Quỹ' : 'Fund History'}
+          </button>
         </div>
       </header>
 
@@ -248,6 +254,8 @@ export const GroupDetail: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="flex flex-col gap-4 sm:gap-6"
             >
+              <GroupFundCard group={group} onAddFund={() => setIsAddFundModalOpen(true)} />
+
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-none shadow-sm flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -344,7 +352,8 @@ export const GroupDetail: React.FC = () => {
                     </h3>
                     <div className="flex flex-col gap-2.5">
                       {bills.map(bill => {
-                        const creator = group.members.find(m => m.id === bill.paidBy) || currentUser;
+                        const memberSource = bill.paymentSources?.find(s => s.type === 'MEMBER');
+                        const creator = group.members.find(m => m.id === memberSource?.memberId) || currentUser;
                         return (
                           <motion.div variants={item} key={bill.id}>
                             <Card
@@ -550,6 +559,11 @@ export const GroupDetail: React.FC = () => {
               })}
             </motion.div>
           )}
+
+          {/* ================= FUND HISTORY TAB ================= */}
+          {activeTab === 'fund' && (
+            <FundHistoryTab key="fund" group={group} />
+          )}
         </AnimatePresence>
       </main>
 
@@ -583,19 +597,26 @@ export const GroupDetail: React.FC = () => {
 
               <div className="flex flex-col gap-2">
                 {/* Paid By Row */}
-                <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                      <Receipt className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      {language === 'vi' ? 'Được trả bởi ' : 'Paid by '}
-                      <span className="font-extrabold text-slate-900 dark:text-slate-100">
-                        {group.members.find(m => m.id === selectedBill.paidBy)?.name || 'Someone'}
-                      </span>
-                    </span>
-                  </div>
-                  <span className="text-sm font-black text-emerald-500">{formatCurrency(selectedBill.amount, currency)}</span>
+                <div className="flex flex-col gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="text-xs font-semibold text-slate-500 mb-1">{language === 'vi' ? 'Nguồn thanh toán' : 'Payment Sources'}</div>
+                  {selectedBill.paymentSources?.map((source, idx) => {
+                    const isFund = source.type === 'GROUP_FUND';
+                    const memberName = isFund ? (language === 'vi' ? 'Quỹ Nhóm' : 'Group Fund') : (group.members.find(m => m.id === source.memberId)?.name || 'Someone');
+
+                    return (
+                      <div key={idx} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isFund ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'}`}>
+                            {isFund ? <Wallet className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
+                          </div>
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            {memberName}
+                          </span>
+                        </div>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">{formatCurrency(source.amount, currency)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Participants Rows */}
@@ -666,6 +687,13 @@ export const GroupDetail: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Add Fund Modal */}
+      <AddFundModal
+        isOpen={isAddFundModalOpen}
+        onClose={() => setIsAddFundModalOpen(false)}
+        groupId={group.id}
+      />
 
     </div>
   );

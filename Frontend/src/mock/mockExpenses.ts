@@ -7,7 +7,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-1',
     title: 'Vé máy bay khứ hồi khẩn cấp',
     amount: 6000000,
-    paidBy: 'user-1', // Duc
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-1', amount: 6000000 }],
     splitType: 'equal',
     splits: [
       { userId: 'user-1', amount: 1500000 },
@@ -25,7 +25,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-1',
     title: 'Khách sạn bên bờ biển Mỹ Khê',
     amount: 4500000,
-    paidBy: 'user-2', // Anh
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-2', amount: 4500000 }],
     splitType: 'equal',
     splits: [
       { userId: 'user-1', amount: 1125000 },
@@ -43,7 +43,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-1',
     title: 'Ăn hải sản cực đã tại Năm Đảnh',
     amount: 2500000,
-    paidBy: 'user-3', // Nam
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-3', amount: 2500000 }],
     splitType: 'percentage',
     splits: [
       { userId: 'user-1', amount: 625000, percentage: 25 },
@@ -61,7 +61,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-1',
     title: 'Vé cáp treo Bà Nà Hills',
     amount: 1500000,
-    paidBy: 'user-4', // Thao
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-4', amount: 1500000 }],
     splitType: 'exact',
     splits: [
       { userId: 'user-1', amount: 500000 },
@@ -81,7 +81,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-2',
     title: 'Tiền thuê nhà Tháng 6',
     amount: 6000000,
-    paidBy: 'user-5', // Hoang
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-5', amount: 6000000 }],
     splitType: 'equal',
     splits: [
       { userId: 'user-1', amount: 2000000 },
@@ -98,7 +98,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-2',
     title: 'Tiền điện & nước',
     amount: 1800000,
-    paidBy: 'user-1', // Duc
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-1', amount: 1800000 }],
     splitType: 'percentage',
     splits: [
       { userId: 'user-1', amount: 720000, percentage: 40 },
@@ -117,7 +117,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-3',
     title: 'Thịt bò Mỹ và hải sản nướng',
     amount: 1600000,
-    paidBy: 'user-2', // Anh
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-2', amount: 1600000 }],
     splitType: 'equal',
     splits: [
       { userId: 'user-1', amount: 400000 },
@@ -135,7 +135,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-3',
     title: 'Trái cây và nước ngọt',
     amount: 750000,
-    paidBy: 'user-1', // Duc
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-1', amount: 750000 }],
     splitType: 'equal',
     splits: [
       { userId: 'user-1', amount: 187500 },
@@ -155,7 +155,7 @@ export const mockExpenses: Expense[] = [
     groupId: 'group-4',
     title: 'Trà sữa Phê La uống chiều',
     amount: 350000,
-    paidBy: 'user-1', // Duc
+    paymentSources: [{ type: 'MEMBER', memberId: 'user-1', amount: 350000 }],
     splitType: 'equal',
     splits: [
       { userId: 'user-1', amount: 116666 },
