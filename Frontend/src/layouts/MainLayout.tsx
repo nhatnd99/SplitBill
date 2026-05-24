@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import { useAppStore, type Toast } from '../store';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
-import { Input } from '../components/Input';
 import { 
   Wallet, LayoutDashboard, FolderHeart, History, User2, Plus, 
   LogOut, Sun, Moon, CheckCircle2, AlertTriangle, Info, X
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CreateBillFlow } from '../components/features/CreateBillFlow';
+import { useAuthStore } from '../store/useAuthStore';
 
 export const MainLayout: React.FC = () => {
   const { 
-    currentUser, theme, setTheme, toasts, removeToast, language, 
-    groups, addExpense, setCurrentUser, addToast
+    theme, setTheme, toasts, removeToast, language, 
+    joinedGroups, addToast
   } = useAppStore();
+  
+  const { user, logout } = useAuthStore();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,12 +26,12 @@ export const MainLayout: React.FC = () => {
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
 
   // Protect route
-  if (!currentUser) {
+  if (!user) {
     return <Navigate to="/welcome" replace />;
   }
 
   const handleLogout = () => {
-    setCurrentUser(null);
+    logout();
     addToast(language === 'vi' ? 'Đã đăng xuất thành công' : 'Logged out successfully', 'info');
     navigate('/welcome');
   };
@@ -105,13 +107,13 @@ export const MainLayout: React.FC = () => {
         <div className="flex flex-col gap-4 border-t border-slate-100 dark:border-slate-800 pt-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Avatar src={currentUser.avatarUrl} name={currentUser.name} avatarColor={currentUser.avatarColor} size="md" />
+              <Avatar src={user.avatarUrl} name={user.name} avatarColor={user.avatarColor} size="md" />
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                  {currentUser.name}
+                  {user.name}
                 </p>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
-                  {currentUser.email}
+                  {user.email || 'Anonymous'}
                 </p>
               </div>
             </div>
@@ -172,7 +174,7 @@ export const MainLayout: React.FC = () => {
             )}
           </button>
           <Link to="/profile">
-            <Avatar src={currentUser.avatarUrl} name={currentUser.name} avatarColor={currentUser.avatarColor} size="sm" />
+            <Avatar src={user.avatarUrl} name={user.name} avatarColor={user.avatarColor} size="sm" />
           </Link>
         </div>
       </header>
@@ -258,7 +260,7 @@ export const MainLayout: React.FC = () => {
         title={language === 'vi' ? 'Thêm Chi Phí Mới' : 'Add New Expense'}
         size="md"
       >
-        {groups.length === 0 ? (
+        {joinedGroups.length === 0 ? (
           <div className="text-center p-6">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {language === 'vi' ? 'Bạn cần tạo một nhóm trước khi thêm chi phí!' : 'You must create a group before adding an expense!'}

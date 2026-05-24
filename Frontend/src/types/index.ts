@@ -7,6 +7,7 @@ export interface User {
   phone?: string;
 }
 
+export type UserDTO = User;
 export type GroupCategory = 'trip' | 'home' | 'couple' | 'office' | 'other';
 
 export interface Group {
@@ -24,6 +25,8 @@ export interface Group {
   fundBalance?: number;
   fundHistory?: FundTransaction[];
 }
+
+export type GroupDTO = Group;
 
 export interface FundTransaction {
   id: string;

@@ -8,11 +8,12 @@ import { ActivityHistory } from './pages/ActivityHistory';
 import { Profile } from './pages/Profile';
 import { Landing } from './pages/Landing';
 import { useAppStore } from './store';
+import { useAuthStore } from './store/useAuthStore';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const currentUser = useAppStore(state => state.currentUser);
-  if (!currentUser) {
+  const token = useAuthStore(state => state.token);
+  if (!token) {
     return <Navigate to="/welcome" replace />;
   }
   return <>{children}</>;

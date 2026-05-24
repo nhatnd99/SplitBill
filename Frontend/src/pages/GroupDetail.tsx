@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
+import { useAuthStore } from '../store/useAuthStore';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
 import { Modal } from '../components/Modal';
@@ -8,7 +9,7 @@ import { Button } from '../components/Button';
 import { formatCurrency } from '../utils/formatters';
 import {
   ArrowLeft, Copy, Receipt, Trash2, Users, FileText,
-  CheckCircle2, PieChart, Activity, DollarSign, ArrowRight, Wallet
+  CheckCircle2, PieChart, Activity, DollarSign, ArrowRight, Wallet, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
@@ -16,24 +17,21 @@ import { GroupFundCard } from '../components/GroupFundCard';
 import { FundHistoryTab } from '../components/FundHistoryTab';
 import { AddFundModal } from '../components/AddFundModal';
 
-interface SettlementTransaction {
-  payerId: string;
-  payerName: string;
-  payerAvatar: string;
-  recipientId: string;
-  recipientName: string;
-  recipientAvatar: string;
-  amount: number;
-}
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { groupsApi } from '../api/groups.api';
+import { billsApi } from '../api/bills.api';
+import { settlementsApi } from '../api/settlements.api';
+import { queryKeys } from '../api/queryKeys';
+import { connectSocket } from '../sockets/socket';
+import toast from 'react-hot-toast';
 
 export const GroupDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const {
-    groups, expenses, groupBalances, deleteExpense, settleDebt,
-    currentUser, addToast, language, currency
-  } = useAppStore();
+  const { language, currency, addToast } = useAppStore();
+  const user = useAuthStore(state => state.user);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'bills' | 'settlements' | 'members' | 'fund'>('overview');
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
@@ -41,59 +39,103 @@ export const GroupDetail: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [isAddFundModalOpen, setIsAddFundModalOpen] = useState(false);
 
-  const group = groups.find(g => g.id === id);
-  const groupExpenses = useMemo(() => {
-    return expenses.filter(e => e.groupId === id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, id]);
+  // --- QUERIES ---
+  const { data: groupData, isLoading: isGroupLoading } = useQuery({
+    queryKey: queryKeys.group(id!),
+    queryFn: () => groupsApi.getGroup(id!),
+    enabled: !!id
+  });
 
-  const summary = groupBalances[id || ''];
-  const selectedBill = useMemo(() => expenses.find(e => e.id === selectedBillId), [expenses, selectedBillId]);
+  const { data: expensesData, isLoading: isExpensesLoading } = useQuery({
+    queryKey: queryKeys.expenses(id!),
+    queryFn: () => billsApi.getExpenses(id!),
+    enabled: !!id
+  });
 
-  // Debt Simplification Algorithm
-  const optimizedSettlements = useMemo(() => {
-    if (!summary || !group) return [];
+  const { data: balancesData, isLoading: isBalancesLoading } = useQuery({
+    queryKey: queryKeys.balances(id!),
+    queryFn: () => settlementsApi.getBalances(id!),
+    enabled: !!id
+  });
 
-    // Copy balances so we can mutate them
-    const balances = summary.balances.map(b => ({ ...b }));
-
-    const debtors = balances.filter(b => b.amount < -0.01).sort((a, b) => a.amount - b.amount); // most negative first
-    const creditors = balances.filter(b => b.amount > 0.01).sort((a, b) => b.amount - a.amount); // most positive first
-
-    const transactions: SettlementTransaction[] = [];
-    let d = 0;
-    let c = 0;
-
-    while (d < debtors.length && c < creditors.length) {
-      const debtor = debtors[d];
-      const creditor = creditors[c];
-
-      const amount = Math.min(-debtor.amount, creditor.amount);
-
-      if (amount > 0.01) {
-        transactions.push({
-          payerId: debtor.userId,
-          payerName: debtor.userName,
-          payerAvatar: debtor.avatarColor,
-          recipientId: creditor.userId,
-          recipientName: creditor.userName,
-          recipientAvatar: creditor.avatarColor,
-          amount
-        });
-      }
-
-      debtor.amount += amount;
-      creditor.amount -= amount;
-
-      if (Math.abs(debtor.amount) < 0.01) d++;
-      if (Math.abs(creditor.amount) < 0.01) c++;
+  // --- MUTATIONS ---
+  const deleteMutation = useMutation({
+    mutationFn: (expenseId: string) => billsApi.deleteExpense(id!, expenseId),
+    onSuccess: () => {
+      toast.success(language === 'vi' ? 'Đã xóa hóa đơn' : 'Bill deleted');
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.balances(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(id!) });
+      setIsDeleteDialogOpen(false);
+      setSelectedBillId(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to delete expense');
     }
+  });
 
-    return transactions;
-  }, [summary, group]);
+  const settleMutation = useMutation({
+    mutationFn: ({ recipientId, amount }: { recipientId: string, amount: number }) => 
+      settlementsApi.settleDebt(id!, recipientId, amount),
+    onSuccess: () => {
+      toast.success(language === 'vi' ? 'Đã đánh dấu thanh toán!' : 'Settlement marked as paid!');
+      queryClient.invalidateQueries({ queryKey: queryKeys.balances(id!) });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to settle debt');
+    }
+  });
 
-  if (!group || !currentUser) {
+  // --- SOCKETS ---
+  useEffect(() => {
+    if (!id) return;
+    const socket = connectSocket();
+    socket.emit('join:group', id);
+
+    const invalidateAll = () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.balances(id) });
+    };
+
+    socket.on('member:joined', (data: any) => {
+      toast.success(`${data.userName} ${language === 'vi' ? 'đã tham gia nhóm!' : 'joined the group!'}`);
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(id) });
+    });
+    socket.on('fund:updated', () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(id) });
+    });
+    socket.on('bill:created', () => invalidateAll());
+    socket.on('bill:deleted', () => invalidateAll());
+    socket.on('settlement:updated', () => invalidateAll());
+
+    return () => {
+      socket.emit('leave:group', id);
+      socket.off('member:joined');
+      socket.off('fund:updated');
+      socket.off('bill:created');
+      socket.off('bill:deleted');
+      socket.off('settlement:updated');
+    };
+  }, [id, queryClient, language]);
+
+  const group = groupData?.data?.group;
+  const groupExpenses = expensesData?.data?.expenses || [];
+  const summary = balancesData?.data?.rawBalances;
+  const optimizedSettlements = balancesData?.data?.optimizedTransactions || [];
+  const selectedBill = useMemo(() => groupExpenses.find(e => e.id === selectedBillId), [groupExpenses, selectedBillId]);
+
+  if (isGroupLoading || isExpensesLoading || isBalancesLoading) {
     return (
-      <div className="p-8 text-center">
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#090d16]">
+        <Loader2 className="w-10 h-10 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  if (!group || !user) {
+    return (
+      <div className="p-8 text-center bg-slate-50 dark:bg-[#090d16] min-h-screen">
         <p className="text-slate-500">{language === 'vi' ? 'Không tìm thấy nhóm' : 'Group not found'}</p>
         <Button onClick={() => navigate('/')} className="mt-4">{language === 'vi' ? 'Quay lại' : 'Go back'}</Button>
       </div>
@@ -119,18 +161,16 @@ export const GroupDetail: React.FC = () => {
 
   const handleDeleteBill = () => {
     if (selectedBillId) {
-      deleteExpense(selectedBillId);
-      setSelectedBillId(null);
-      setIsDeleteDialogOpen(false);
+      deleteMutation.mutate(selectedBillId);
     }
   };
 
-  const handleSettle = (tx: SettlementTransaction) => {
-    settleDebt(group.id, tx.payerId, tx.recipientId, tx.amount);
+  const handleSettle = (tx: any) => {
+    settleMutation.mutate({ recipientId: tx.recipientId, amount: tx.amount });
   };
 
   // Group bills by date
-  const groupedBills = useMemo(() => {
+  const groupedBills = (() => {
     const grouped: Record<string, typeof groupExpenses> = {};
     groupExpenses.forEach(bill => {
       const date = new Date(bill.date);
@@ -149,7 +189,7 @@ export const GroupDetail: React.FC = () => {
       grouped[key].push(bill);
     });
     return grouped;
-  }, [groupExpenses, language]);
+  })();
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-100 pb-safe">
@@ -353,7 +393,7 @@ export const GroupDetail: React.FC = () => {
                     <div className="flex flex-col gap-2.5">
                       {bills.map(bill => {
                         const memberSource = bill.paymentSources?.find(s => s.type === 'MEMBER');
-                        const creator = group.members.find(m => m.id === memberSource?.memberId) || currentUser;
+                        const creator = group.members.find((m: any) => m.id === memberSource?.memberId) || user;
                         return (
                           <motion.div variants={item} key={bill.id}>
                             <Card
@@ -380,7 +420,7 @@ export const GroupDetail: React.FC = () => {
                                 </span>
                                 <div className="flex -space-x-1.5">
                                   {bill.splits.slice(0, 3).map(split => {
-                                    const participant = group.members.find(m => m.id === split.userId);
+                                    const participant = group.members.find((m: any) => m.id === split.userId);
                                     return participant ? (
                                       <div key={split.userId} className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-white dark:border-slate-900 overflow-hidden bg-slate-200">
                                         {participant.avatarUrl ?
@@ -445,9 +485,9 @@ export const GroupDetail: React.FC = () => {
                 </motion.div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {optimizedSettlements.map((tx, idx) => {
-                    const isMePayer = tx.payerId === currentUser.id;
-                    const isMeRecipient = tx.recipientId === currentUser.id;
+                  {optimizedSettlements.map((tx: any, idx: number) => {
+                    const isMePayer = tx.payerId === user.id;
+                    const isMeRecipient = tx.recipientId === user.id;
 
                     return (
                       <motion.div variants={item} key={idx}>
@@ -489,7 +529,7 @@ export const GroupDetail: React.FC = () => {
 
                           {/* Action Button */}
                           <div className="pt-3 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
-                            <Button size="sm" onClick={() => handleSettle(tx)} className="shadow-sm">
+                            <Button size="sm" onClick={() => handleSettle(tx)} className="shadow-sm" disabled={settleMutation.isPending}>
                               {language === 'vi' ? 'Đánh dấu đã trả' : 'Mark as Paid'}
                             </Button>
                           </div>
@@ -512,12 +552,12 @@ export const GroupDetail: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="flex flex-col gap-3"
             >
-              {group.members.map(member => {
-                const memberBalance = summary?.balances.find(b => b.userId === member.id);
-                const balanceAmt = memberBalance?.amount || 0;
+              {group.members.map((member: any) => {
+                if (!member) return null;
+                const balanceAmt = summary?.[member.id] || 0;
 
                 return (
-                  <motion.div variants={item} key={member.id}>
+                  <motion.div variants={item} key={member.id || Math.random()}>
                     <Card className="p-3 sm:p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar name={member.name} src={member.avatarUrl} avatarColor={member.avatarColor} size="md" />
@@ -528,7 +568,7 @@ export const GroupDetail: React.FC = () => {
                               <span className="px-1.5 py-0.5 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[9px] uppercase tracking-wider rounded-md">Admin</span>
                             )}
                           </span>
-                          {member.id === currentUser.id && (
+                          {member.id === user?.id && (
                             <span className="text-[10px] text-slate-500">{language === 'vi' ? '(Bạn)' : '(You)'}</span>
                           )}
                         </div>
@@ -599,9 +639,9 @@ export const GroupDetail: React.FC = () => {
                 {/* Paid By Row */}
                 <div className="flex flex-col gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
                   <div className="text-xs font-semibold text-slate-500 mb-1">{language === 'vi' ? 'Nguồn thanh toán' : 'Payment Sources'}</div>
-                  {selectedBill.paymentSources?.map((source, idx) => {
+                  {selectedBill.paymentSources?.map((source: any, idx: number) => {
                     const isFund = source.type === 'GROUP_FUND';
-                    const memberName = isFund ? (language === 'vi' ? 'Quỹ Nhóm' : 'Group Fund') : (group.members.find(m => m.id === source.memberId)?.name || 'Someone');
+                    const memberName = isFund ? (language === 'vi' ? 'Quỹ Nhóm' : 'Group Fund') : (group.members.find((m: any) => m.id === source.memberId)?.name || 'Someone');
 
                     return (
                       <div key={idx} className="flex items-center justify-between">
@@ -620,8 +660,8 @@ export const GroupDetail: React.FC = () => {
                 </div>
 
                 {/* Participants Rows */}
-                {selectedBill.splits.map(split => {
-                  const participant = group.members.find(m => m.id === split.userId);
+                {selectedBill.splits.map((split: any) => {
+                  const participant = group.members.find((m: any) => m.id === split.userId);
                   if (!participant) return null;
 
                   return (
@@ -640,7 +680,7 @@ export const GroupDetail: React.FC = () => {
             </div>
 
             {/* Actions */}
-            {selectedBill.createdBy === currentUser.id && (
+            {selectedBill.createdBy === user.id && (
               <div className="flex items-center gap-3 pt-2">
                 <Button
                   variant="ghost"
@@ -655,7 +695,7 @@ export const GroupDetail: React.FC = () => {
                 </Button>
               </div>
             )}
-            {selectedBill.createdBy !== currentUser.id && (
+            {selectedBill.createdBy !== user.id && (
               <Button className="w-full font-bold" onClick={() => setSelectedBillId(null)}>
                 {language === 'vi' ? 'Đóng' : 'Close'}
               </Button>
@@ -678,11 +718,11 @@ export const GroupDetail: React.FC = () => {
               : 'Are you sure you want to delete this bill? This cannot be undone and will recalculate everyone\'s balances.'}
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" className="flex-1 font-bold" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="ghost" className="flex-1 font-bold" onClick={() => setIsDeleteDialogOpen(false)} disabled={deleteMutation.isPending}>
               {language === 'vi' ? 'Hủy' : 'Cancel'}
             </Button>
-            <Button className="flex-1 bg-rose-500 hover:bg-rose-600 font-bold shadow-md shadow-rose-500/20 text-white border-none" onClick={handleDeleteBill}>
-              {language === 'vi' ? 'Xóa Hóa Đơn' : 'Delete Bill'}
+            <Button className="flex-1 bg-rose-500 hover:bg-rose-600 font-bold shadow-md shadow-rose-500/20 text-white border-none" onClick={handleDeleteBill} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (language === 'vi' ? 'Xóa Hóa Đơn' : 'Delete Bill')}
             </Button>
           </div>
         </div>

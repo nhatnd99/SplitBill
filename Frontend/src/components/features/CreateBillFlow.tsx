@@ -1,44 +1,68 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../Button';
 import { Input } from '../Input';
 import { Avatar } from '../Avatar';
-import { ChevronDown, ArrowRight, ArrowLeft, Percent, Calculator, Users } from 'lucide-react';
+import { ChevronDown, ArrowRight, ArrowLeft, Percent, Calculator, Users, Loader2 } from 'lucide-react';
 import { formatCurrency, getCategoryLabel, getCategoryEmoji } from '../../utils/formatters';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { billsApi } from '../../api/bills.api';
+import { queryKeys } from '../../api/queryKeys';
+import toast from 'react-hot-toast';
 
 interface CreateBillFlowProps {
   onClose: () => void;
 }
 
 export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
-  const { groups, currentUser, language, addExpense, addToast, currency } = useAppStore();
+  const { joinedGroups, language, addToast, currency } = useAppStore();
+  const user = useAuthStore(state => state.user);
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form State
-  const [selectedGroupId, setSelectedGroupId] = useState(groups.length > 0 ? groups[0].id : '');
+  const [selectedGroupId, setSelectedGroupId] = useState(joinedGroups.length > 0 ? joinedGroups[0].id : '');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('food');
-  const [paidBy, setPaidBy] = useState(currentUser?.id || '');
-  const [notes, setNotes] = useState('');
+  const [paidBy, setPaidBy] = useState(user?.id || '');
+  const [notes] = useState('');
 
   // Split State
   const [splitType, setSplitType] = useState<'equal' | 'percentage' | 'exact'>('equal');
   const [customSplits, setCustomSplits] = useState<Record<string, number>>({});
 
-  const targetGroup = groups.find(g => g.id === selectedGroupId);
+  const targetGroup = joinedGroups.find((g: any) => g.id === selectedGroupId);
+
+  const createMutation = useMutation({
+    mutationFn: async (expenseData: any) => {
+      await billsApi.createExpense(selectedGroupId, expenseData);
+    },
+    onSuccess: () => {
+      toast.success(language === 'vi' ? 'Đã thêm chi phí!' : 'Expense added!');
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses(selectedGroupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(selectedGroupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.balances(selectedGroupId) });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create expense');
+    }
+  });
 
   // Initialize custom splits if members change
   useEffect(() => {
     if (targetGroup && amount && splitType !== 'equal') {
       const initial: Record<string, number> = {};
       const numAmount = parseFloat(amount) || 0;
-      targetGroup.members.forEach(m => {
+      targetGroup.members.forEach((m: any) => {
+        const memberId = typeof m === 'string' ? m : m.id;
         if (splitType === 'percentage') {
-          initial[m.id] = parseFloat((100 / targetGroup.members.length).toFixed(2));
+          initial[memberId] = parseFloat((100 / targetGroup.members.length).toFixed(2));
         } else if (splitType === 'exact') {
-          initial[m.id] = parseFloat((numAmount / targetGroup.members.length).toFixed(2));
+          initial[memberId] = parseFloat((numAmount / targetGroup.members.length).toFixed(2));
         }
       });
       setCustomSplits(initial);
@@ -74,8 +98,8 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
 
     if (splitType === 'equal') {
       const perPerson = amountNum / targetGroup.members.length;
-      splits = targetGroup.members.map(m => ({
-        userId: m.id,
+      splits = targetGroup.members.map((m: any) => ({
+        userId: typeof m === 'string' ? m : m.id,
         amount: perPerson,
         percentage: 100 / targetGroup.members.length,
       }));
@@ -89,10 +113,11 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
         return;
       }
       
-      splits = targetGroup.members.map(m => {
-        const p = customSplits[m.id] || 0;
+      splits = targetGroup.members.map((m: any) => {
+        const memberId = typeof m === 'string' ? m : m.id;
+        const p = customSplits[memberId] || 0;
         return {
-          userId: m.id,
+          userId: memberId,
           amount: (amountNum * p) / 100,
           percentage: p,
         };
@@ -106,10 +131,13 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
         return;
       }
 
-      splits = targetGroup.members.map(m => ({
-        userId: m.id,
-        amount: customSplits[m.id] || 0,
-      }));
+      splits = targetGroup.members.map((m: any) => {
+        const memberId = typeof m === 'string' ? m : m.id;
+        return {
+          userId: memberId,
+          amount: customSplits[memberId] || 0,
+        };
+      });
     }
 
     const groupFundBalance = targetGroup.fundBalance || 0;
@@ -124,8 +152,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       paymentSources.push({ type: 'MEMBER', memberId: paidBy, amount: remainingToPay });
     }
 
-    addExpense({
-      groupId: selectedGroupId,
+    createMutation.mutate({
       title,
       amount: amountNum,
       paymentSources,
@@ -134,11 +161,9 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       category,
       notes,
     });
-
-    onClose();
   };
 
-  if (groups.length === 0) {
+  if (joinedGroups.length === 0) {
     return (
       <div className="text-center p-6">
         <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -184,7 +209,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
                 onChange={(e) => setSelectedGroupId(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 appearance-none font-bold"
               >
-                {groups.map((group) => (
+                {joinedGroups.map((group: any) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
                   </option>
@@ -244,11 +269,15 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
                     onChange={(e) => setPaidBy(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 appearance-none font-bold"
                   >
-                    {targetGroup?.members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
+                    {targetGroup?.members.map((member: any) => {
+                      const mId = typeof member === 'string' ? member : member.id;
+                      const mName = typeof member === 'string' ? 'User' : member.name;
+                      return (
+                        <option key={mId} value={mId}>
+                          {mName}
+                        </option>
+                      );
+                    })}
                   </select>
                   <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
@@ -354,67 +383,82 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
           {splitType === 'equal' && (
             <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-2xl p-4">
               <div className="flex flex-col gap-3">
-                {targetGroup?.members.map(member => (
-                  <div key={member.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={member.name} avatarColor={member.avatarColor} size="sm" />
-                      <span className="font-semibold text-sm">{member.name}</span>
+                {targetGroup?.members.map((member: any) => {
+                  const mId = typeof member === 'string' ? member : member.id;
+                  const mName = typeof member === 'string' ? 'User' : member.name;
+                  const mAvatar = typeof member === 'string' ? undefined : member.avatarColor;
+                  return (
+                    <div key={mId} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={mName} avatarColor={mAvatar} size="sm" />
+                        <span className="font-semibold text-sm">{mName}</span>
+                      </div>
+                      <span className="font-bold text-slate-700 dark:text-slate-200">
+                        {formatCurrency(parseFloat(amount) / targetGroup.members.length, currency)}
+                      </span>
                     </div>
-                    <span className="font-bold text-slate-700 dark:text-slate-200">
-                      {formatCurrency(parseFloat(amount) / targetGroup.members.length, currency)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {splitType === 'percentage' && (
             <div className="flex flex-col gap-3">
-              {targetGroup?.members.map(member => (
-                <div key={member.id} className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                  <Avatar name={member.name} avatarColor={member.avatarColor} size="sm" />
-                  <span className="font-semibold text-sm flex-grow truncate">{member.name}</span>
-                  <div className="flex items-center gap-2 w-32 shrink-0">
-                    <input
-                      type="number"
-                      step="0.1"
-                      className="w-full px-3 py-2 text-right rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-bold"
-                      value={customSplits[member.id] || ''}
-                      onChange={(e) => setCustomSplits({ ...customSplits, [member.id]: parseFloat(e.target.value) || 0 })}
-                    />
-                    <span className="font-bold text-slate-500">%</span>
+              {targetGroup?.members.map((member: any) => {
+                const mId = typeof member === 'string' ? member : member.id;
+                const mName = typeof member === 'string' ? 'User' : member.name;
+                const mAvatar = typeof member === 'string' ? undefined : member.avatarColor;
+                return (
+                  <div key={mId} className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                    <Avatar name={mName} avatarColor={mAvatar} size="sm" />
+                    <span className="font-semibold text-sm flex-grow truncate">{mName}</span>
+                    <div className="flex items-center gap-2 w-32 shrink-0">
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="w-full px-3 py-2 text-right rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-bold"
+                        value={customSplits[mId] || ''}
+                        onChange={(e) => setCustomSplits({ ...customSplits, [mId]: parseFloat(e.target.value) || 0 })}
+                      />
+                      <span className="font-bold text-slate-500">%</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
           {splitType === 'exact' && (
             <div className="flex flex-col gap-3">
-              {targetGroup?.members.map(member => (
-                <div key={member.id} className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                  <Avatar name={member.name} avatarColor={member.avatarColor} size="sm" />
-                  <span className="font-semibold text-sm flex-grow truncate">{member.name}</span>
-                  <div className="flex items-center gap-2 w-36 shrink-0">
-                    <input
-                      type="number"
-                      className="w-full px-3 py-2 text-right rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-bold"
-                      value={customSplits[member.id] || ''}
-                      onChange={(e) => setCustomSplits({ ...customSplits, [member.id]: parseFloat(e.target.value) || 0 })}
-                    />
+              {targetGroup?.members.map((member: any) => {
+                const mId = typeof member === 'string' ? member : member.id;
+                const mName = typeof member === 'string' ? 'User' : member.name;
+                const mAvatar = typeof member === 'string' ? undefined : member.avatarColor;
+                return (
+                  <div key={mId} className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                    <Avatar name={mName} avatarColor={mAvatar} size="sm" />
+                    <span className="font-semibold text-sm flex-grow truncate">{mName}</span>
+                    <div className="flex items-center gap-2 w-36 shrink-0">
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 text-right rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-bold"
+                        value={customSplits[mId] || ''}
+                        onChange={(e) => setCustomSplits({ ...customSplits, [mId]: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
           <div className="mt-4 flex gap-3">
-            <Button type="button" variant="outline" onClick={() => setStep(2)} className="w-1/3 px-0">
+            <Button disabled={createMutation.isPending} type="button" variant="outline" onClick={() => setStep(2)} className="w-1/3 px-0">
               {language === 'vi' ? 'Quay lại' : 'Back'}
             </Button>
-            <Button type="submit" variant="primary" className="w-2/3 font-bold">
-              {language === 'vi' ? 'Xác nhận tạo' : 'Create Bill'}
+            <Button disabled={createMutation.isPending} type="submit" variant="primary" className="w-2/3 font-bold" leftIcon={createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}>
+              {createMutation.isPending ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') : (language === 'vi' ? 'Xác nhận tạo' : 'Create Bill')}
             </Button>
           </div>
         </div>

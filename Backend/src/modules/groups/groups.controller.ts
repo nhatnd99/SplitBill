@@ -36,9 +36,11 @@ export const createGroup = async (req: any, res: Response, next: NextFunction) =
       details: { groupName: newGroup.name },
     });
 
+    const populatedGroup = await Group.findById(newGroup._id).populate('members', 'name email avatarColor avatarUrl');
+
     res.status(201).json({
       status: 'success',
-      data: { group: newGroup },
+      data: { group: populatedGroup },
     });
   } catch (error: any) {
     next(new AppError(error.message, 400));
@@ -70,9 +72,11 @@ export const joinGroup = async (req: any, res: Response, next: NextFunction) => 
 
     getIO().to(group._id.toString()).emit('member:joined', { userId: req.user._id, userName: req.user.name });
 
+    const populatedGroup = await Group.findById(group._id).populate('members', 'name email avatarColor avatarUrl');
+
     res.status(200).json({
       status: 'success',
-      data: { group },
+      data: { group: populatedGroup },
     });
   } catch (error: any) {
     next(new AppError(error.message, 400));

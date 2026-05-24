@@ -26,6 +26,8 @@ export const Avatar: React.FC<AvatarProps> = ({
     '2xl': 'w-24 h-24 text-3xl',
   };
 
+  const safeName = name || '?';
+
   const getInitials = (fullName: string) => {
     const parts = fullName.trim().split(' ');
     if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
@@ -43,7 +45,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     return `hsl(${h}, 65%, 45%)`;
   };
 
-  const bgColor = getBackgroundColor(name);
+  const bgColor = getBackgroundColor(safeName);
 
   return (
     <div
@@ -64,7 +66,7 @@ export const Avatar: React.FC<AvatarProps> = ({
           }}
         />
       ) : (
-        <span>{getInitials(name)}</span>
+        <span>{getInitials(safeName)}</span>
       )}
     </div>
   );

@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
+import { useAuthStore } from '../store/useAuthStore';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
-import { Wallet, LogIn, Plus, Users, ShieldCheck } from 'lucide-react';
+import { Wallet, LogIn, Plus, ShieldCheck, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { GroupCategory } from '../types';
+import { authApi } from '../api/auth.api';
+import { groupsApi } from '../api/groups.api';
+import { useMutation } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 export const Landing: React.FC = () => {
   const navigate = useNavigate();
-  const { joinGroup, addGroup, language } = useAppStore();
+  const { language } = useAppStore();
+  const setAuth = useAuthStore(state => state.setAuth);
   
   const [activeTab, setActiveTab] = useState<'join' | 'create'>('join');
   const [userName, setUserName] = useState('');
@@ -26,29 +32,61 @@ export const Landing: React.FC = () => {
   const colors = ['#10b981', '#3b82f6', '#f43f5e', '#a855f7', '#f59e0b', '#06b6d4'];
   const [avatarColor, setAvatarColor] = useState(colors[0]);
 
+  const joinMutation = useMutation({
+    mutationFn: async () => {
+      // Register user anonymously
+      const authRes = await authApi.register({ name: userName.trim(), avatarColor });
+      setAuth(authRes.token, authRes.data.user);
+      
+      // Join group
+      const joinRes = await groupsApi.joinGroup(inviteCode.trim().toUpperCase());
+      return joinRes.data.group || { id: joinRes.data.groupId, name: 'Group' };
+    },
+    onSuccess: (group) => {
+      useAppStore.getState().addJoinedGroup(group);
+      navigate(`/groups/${group.id}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to join group');
+    }
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      // Register user anonymously
+      const authRes = await authApi.register({ name: userName.trim(), avatarColor });
+      setAuth(authRes.token, authRes.data.user);
+      
+      // Create group
+      const createRes = await groupsApi.createGroup({ 
+        name: groupName.trim(), 
+        category 
+      });
+      return createRes.data.group;
+    },
+    onSuccess: (group) => {
+      useAppStore.getState().addJoinedGroup(group);
+      toast.success(language === 'vi' ? 'Tạo nhóm thành công!' : 'Group created successfully!');
+      navigate(`/groups/${group.id}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create group');
+    }
+  });
+
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName.trim() || !inviteCode.trim()) return;
-    
-    const groupId = joinGroup(inviteCode.trim().toUpperCase(), userName.trim(), avatarColor);
-    if (groupId) {
-      navigate(`/groups/${groupId}`);
-    }
+    joinMutation.mutate();
   };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName.trim() || !groupName.trim()) return;
-    
-    const groupId = addGroup(
-      groupName.trim(), 
-      '', 
-      category, 
-      userName.trim(), 
-      avatarColor
-    );
-    navigate(`/groups/${groupId}`);
+    createMutation.mutate();
   };
+
+  const isPending = joinMutation.isPending || createMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-[#090d16] relative overflow-hidden">
@@ -73,7 +111,7 @@ export const Landing: React.FC = () => {
             Antigravity <span className="gradient-text">Split</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium">
-            {language === 'vi' ? 'Chia sẻ hóa đơn nhanh chóng không cần đăng nhập' : 'Split expenses instantly without signing up'}
+            {language === 'vi' ? 'Chia sẻ hóa đơn nhanh chóng qua API' : 'Split expenses instantly over real API'}
           </p>
         </div>
 
@@ -88,6 +126,7 @@ export const Landing: React.FC = () => {
               onChange={(e) => setUserName(e.target.value)}
               className="text-lg font-bold"
               required
+              disabled={isPending}
             />
             
             <div className="mt-4">
@@ -99,6 +138,7 @@ export const Landing: React.FC = () => {
                   <button
                     key={c}
                     type="button"
+                    disabled={isPending}
                     onClick={() => setAvatarColor(c)}
                     className={`w-8 h-8 rounded-full border-2 transition-transform ${avatarColor === c ? 'scale-125 border-white dark:border-slate-800 shadow-md' : 'border-transparent hover:scale-110'}`}
                     style={{ backgroundColor: c }}
@@ -110,12 +150,16 @@ export const Landing: React.FC = () => {
 
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
             <button
+              type="button"
+              disabled={isPending}
               onClick={() => setActiveTab('join')}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'join' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               {language === 'vi' ? 'Tham gia nhóm' : 'Join Group'}
             </button>
             <button
+              type="button"
+              disabled={isPending}
               onClick={() => setActiveTab('create')}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'create' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
@@ -132,9 +176,12 @@ export const Landing: React.FC = () => {
                 className="uppercase font-bold tracking-widest text-center"
                 maxLength={6}
                 required
+                disabled={isPending}
               />
-              <Button type="submit" className="w-full h-12 text-base font-bold shadow-lg" leftIcon={<LogIn className="w-5 h-5" />}>
-                {language === 'vi' ? 'Tham Gia Ngay' : 'Join Now'}
+              <Button disabled={isPending} type="submit" className="w-full h-12 text-base font-bold shadow-lg" leftIcon={joinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}>
+                {joinMutation.isPending 
+                  ? (language === 'vi' ? 'Đang kết nối...' : 'Connecting...') 
+                  : (language === 'vi' ? 'Tham Gia Ngay' : 'Join Now')}
               </Button>
             </form>
           ) : (
@@ -144,13 +191,16 @@ export const Landing: React.FC = () => {
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
                 required
+                disabled={isPending}
               />
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => setCategory('trip')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'trip' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{language === 'vi' ? '🌴 Du lịch' : '🌴 Trip'}</button>
-                <button type="button" onClick={() => setCategory('home')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'home' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{language === 'vi' ? '🏠 Nhà cửa' : '🏠 Home'}</button>
+                <button type="button" disabled={isPending} onClick={() => setCategory('trip')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'trip' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{language === 'vi' ? '🌴 Du lịch' : '🌴 Trip'}</button>
+                <button type="button" disabled={isPending} onClick={() => setCategory('home')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'home' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{language === 'vi' ? '🏠 Nhà cửa' : '🏠 Home'}</button>
               </div>
-              <Button type="submit" className="w-full h-12 text-base font-bold shadow-lg mt-2" leftIcon={<Plus className="w-5 h-5" />}>
-                {language === 'vi' ? 'Tạo Nhóm Mới' : 'Create New Group'}
+              <Button disabled={isPending} type="submit" className="w-full h-12 text-base font-bold shadow-lg mt-2" leftIcon={createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
+                {createMutation.isPending 
+                  ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') 
+                  : (language === 'vi' ? 'Tạo Nhóm Mới' : 'Create New Group')}
               </Button>
             </form>
           )}
@@ -159,7 +209,7 @@ export const Landing: React.FC = () => {
         
         <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>{language === 'vi' ? 'Không cần đăng ký. Dữ liệu lưu cục bộ.' : 'No sign up required. Local storage only.'}</span>
+          <span>{language === 'vi' ? 'Cloud Sync & Realtime Updates' : 'Cloud Sync & Realtime Updates'}</span>
         </div>
       </motion.div>
     </div>

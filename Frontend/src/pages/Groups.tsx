@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
-import { Avatar } from '../components/Avatar';
 import { GroupCard } from '../components/GroupCard';
 import { Modal } from '../components/Modal';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
-import { Search, Plus, Users, Check } from 'lucide-react';
+import { Search, Plus, Users, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { GroupCategory } from '../types';
+import { useMutation } from '@tanstack/react-query';
+import { groupsApi } from '../api/groups.api';
+import toast from 'react-hot-toast';
 
 export const Groups: React.FC = () => {
-  const { groups, addGroup, users, currentUser, language } = useAppStore();
+  const { joinedGroups, addJoinedGroup, language } = useAppStore();
   const navigate = useNavigate();
 
   // Search & Filter state
@@ -24,8 +26,6 @@ export const Groups: React.FC = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
   const [newGroupCat, setNewGroupCat] = useState<GroupCategory>('trip');
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [memberSearch, setMemberSearch] = useState('');
 
   // Categories list
   const categories = [
@@ -37,39 +37,44 @@ export const Groups: React.FC = () => {
   ];
 
   // Filter groups
-  const filteredGroups = groups.filter((g) => {
-    const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredGroups = joinedGroups.filter((g: any) => {
+    if (!g) return false;
+    const gName = g.name || '';
+    const matchesSearch = gName.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (g.description && g.description.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCat = activeCategory === 'all' || g.category === activeCategory;
     return matchesSearch && matchesCat;
   });
 
-  // Handle member toggle
-  const toggleMember = (userId: string) => {
-    if (selectedMemberIds.includes(userId)) {
-      setSelectedMemberIds(selectedMemberIds.filter(id => id !== userId));
-    } else {
-      setSelectedMemberIds([...selectedMemberIds, userId]);
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const res = await groupsApi.createGroup({ 
+        name: newGroupName.trim(), 
+        description: newGroupDesc.trim(),
+        category: newGroupCat 
+      });
+      return res.data.group;
+    },
+    onSuccess: (group) => {
+      addJoinedGroup(group);
+      toast.success(language === 'vi' ? 'Tạo nhóm thành công!' : 'Group created successfully!');
+      
+      // Reset Form
+      setNewGroupName('');
+      setNewGroupDesc('');
+      setNewGroupCat('trip');
+      setIsCreateOpen(false);
+      navigate(`/groups/${group.id}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create group');
     }
-  };
+  });
 
   const handleCreateGroup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName.trim()) return;
-
-    addGroup(
-      newGroupName,
-      newGroupDesc,
-      newGroupCat,
-      selectedMemberIds
-    );
-
-    // Reset Form
-    setNewGroupName('');
-    setNewGroupDesc('');
-    setNewGroupCat('trip');
-    setSelectedMemberIds([]);
-    setIsCreateOpen(false);
+    createMutation.mutate();
   };
 
   const createGroupForm = (
@@ -80,6 +85,7 @@ export const Groups: React.FC = () => {
         value={newGroupName}
         onChange={(e) => setNewGroupName(e.target.value)}
         required
+        disabled={createMutation.isPending}
       />
 
       <Input
@@ -87,6 +93,7 @@ export const Groups: React.FC = () => {
         placeholder={language === 'vi' ? 'e.g. Chuyến đi 3 ngày 2 đêm cuối tuần...' : 'e.g. Shared expenses for Sapa trip...'}
         value={newGroupDesc}
         onChange={(e) => setNewGroupDesc(e.target.value)}
+        disabled={createMutation.isPending}
       />
 
       {/* Category selector */}
@@ -108,6 +115,7 @@ export const Groups: React.FC = () => {
               <button
                 key={cat}
                 type="button"
+                disabled={createMutation.isPending}
                 onClick={() => setNewGroupCat(cat)}
                 className={`
                   p-2.5 rounded-xl border text-xs font-bold text-center transition-all select-none cursor-pointer
@@ -125,71 +133,18 @@ export const Groups: React.FC = () => {
         </div>
       </div>
 
-      {/* Members checklists */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1 flex justify-between items-center">
-          <span>{language === 'vi' ? 'Thêm thành viên' : 'Add Members'}</span>
-          <span className="text-[10px] text-slate-400 font-bold">
-            {selectedMemberIds.length} {language === 'vi' ? 'đã chọn' : 'selected'}
-          </span>
-        </label>
-        
-        {/* Search member */}
-        <Input
-          placeholder={language === 'vi' ? 'Tìm kiếm bạn bè...' : 'Search friends...'}
-          value={memberSearch}
-          onChange={(e) => setMemberSearch(e.target.value)}
-          leftIcon={<Search className="w-3.5 h-3.5 text-slate-400" />}
-          containerClassName="mb-1"
-        />
-
-        <div className="max-h-40 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800/50">
-          {users
-            .filter(u => u.id !== currentUser?.id) // exclude current user since they are auto-added
-            .filter(u => u.name.toLowerCase().includes(memberSearch.toLowerCase()))
-            .map((user) => {
-              const isSelected = selectedMemberIds.includes(user.id);
-              return (
-                <div
-                  key={user.id}
-                  onClick={() => toggleMember(user.id)}
-                  className={`flex items-center justify-between p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors select-none`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Avatar name={user.name} src={user.avatarUrl} avatarColor={user.avatarColor} size="sm" />
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                      {user.name}
-                    </span>
-                  </div>
-                  <div
-                    className={`
-                      w-5 h-5 rounded-md border flex items-center justify-center transition-all
-                      ${
-                        isSelected
-                          ? 'bg-primary-500 border-primary-500 text-white'
-                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
-                      }
-                    `}
-                  >
-                    {isSelected && <Check className="w-3 h-3 stroke-[3px]" />}
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-
       <div className="flex gap-3 mt-4">
         <Button
           type="button"
           variant="outline"
           onClick={() => setIsCreateOpen(false)}
           className="w-1/2"
+          disabled={createMutation.isPending}
         >
           {language === 'vi' ? 'Hủy bỏ' : 'Cancel'}
         </Button>
-        <Button type="submit" variant="primary" className="w-1/2 font-bold">
-          {language === 'vi' ? 'Tạo nhóm' : 'Create Group'}
+        <Button type="submit" variant="primary" className="w-1/2 font-bold" disabled={createMutation.isPending} leftIcon={createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}>
+          {createMutation.isPending ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') : (language === 'vi' ? 'Tạo nhóm' : 'Create Group')}
         </Button>
       </div>
     </form>
@@ -267,7 +222,7 @@ export const Groups: React.FC = () => {
           layout
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {filteredGroups.map((group) => (
+          {filteredGroups.map((group: any) => (
             <motion.div
               layout
               initial={{ opacity: 0, scale: 0.96 }}

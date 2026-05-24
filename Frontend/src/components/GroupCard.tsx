@@ -97,11 +97,11 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick }) => {
           {/* Members Avatars Stack */}
           <div className="flex items-center justify-between mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex -space-x-2.5 overflow-hidden">
-              {group.members.slice(0, 4).map((member) => (
+              {group.members.slice(0, 4).map((member: any) => (
                 <Avatar
-                  key={member.id}
+                  key={member.id || member}
                   src={member.avatarUrl}
-                  name={member.name}
+                  name={member.name || '?'}
                   size="sm"
                   showBorder
                 />

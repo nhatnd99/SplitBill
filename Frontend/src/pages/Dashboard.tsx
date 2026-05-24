@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
+import { useAuthStore } from '../store/useAuthStore';
 import { Card } from '../components/Card';
 import { Avatar } from '../components/Avatar';
 import { Modal } from '../components/Modal';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { formatRelativeTime } from '../utils/formatters';
-import {
-  Sun, Moon, Plus, Users, LogIn, ChevronRight, Receipt
-} from 'lucide-react';
+// import { formatCurrency } from '../utils/formatters';
+import { Sun, Moon, Plus, Users, LogIn, ChevronRight, Receipt, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { groupsApi } from '../api/groups.api';
+import toast from 'react-hot-toast';
 
 export const Dashboard: React.FC = () => {
-  const {
-    currentUser, activities, groups,
-    language, theme, setTheme, joinGroup, addGroup
-  } = useAppStore();
+  const { language, theme, setTheme, joinedGroups, addJoinedGroup } = useAppStore();
+  const user = useAuthStore(state => state.user);
   const navigate = useNavigate();
 
   // Local state for modals (Quick Actions)
@@ -25,8 +25,6 @@ export const Dashboard: React.FC = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-
-  if (!currentUser) return null;
 
   // Animation variants
   const container: Variants = {
@@ -42,23 +40,51 @@ export const Dashboard: React.FC = () => {
     show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
+  const joinMutation = useMutation({
+    mutationFn: async () => {
+      const res = await groupsApi.joinGroup(inviteCode.trim().toUpperCase());
+      return res.data.group || { id: res.data.groupId, name: 'Group' };
+    },
+    onSuccess: (group) => {
+      addJoinedGroup(group);
+      setIsJoinOpen(false);
+      navigate(`/groups/${group.id}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to join group');
+    }
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const res = await groupsApi.createGroup({ name: newGroupName.trim(), category: 'trip' });
+      return res.data.group;
+    },
+    onSuccess: (group) => {
+      addJoinedGroup(group);
+      setIsCreateOpen(false);
+      navigate(`/groups/${group.id}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create group');
+    }
+  });
+
   const handleJoinGroup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteCode.trim()) return;
-    const groupId = joinGroup(inviteCode.trim().toUpperCase(), currentUser.name, currentUser.avatarColor);
-    if (groupId) {
-      setIsJoinOpen(false);
-      navigate(`/groups/${groupId}`);
-    }
+    joinMutation.mutate();
   };
 
   const handleCreateGroup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName.trim()) return;
-    const groupId = addGroup(newGroupName.trim(), '', 'trip', currentUser.name, currentUser.avatarColor);
-    setIsCreateOpen(false);
-    navigate(`/groups/${groupId}`);
+    createMutation.mutate();
   };
+
+  if (!user) return null;
+
+  // Animation variants
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-100">
@@ -94,9 +120,9 @@ export const Dashboard: React.FC = () => {
           </button>
           <Link to="/profile" className="block hover:opacity-80 transition-opacity">
             <Avatar
-              src={currentUser.avatarUrl}
-              name={currentUser.name}
-              avatarColor={currentUser.avatarColor}
+              src={user.avatarUrl}
+              name={user.name}
+              avatarColor={user.avatarColor}
               size="sm"
               showBorder
             />
@@ -111,7 +137,7 @@ export const Dashboard: React.FC = () => {
           {/* Greeting */}
           <motion.div variants={item} className="pt-2">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-              {language === 'vi' ? `Chào ${currentUser.name.split(' ')[0]} 👋` : `Hello ${currentUser.name.split(' ')[0]} 👋`}
+              {language === 'vi' ? `Chào ${user.name.split(' ')[0]} 👋` : `Hello ${user.name.split(' ')[0]} 👋`}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {language === 'vi' ? 'Sẵn sàng chia sẻ chi phí cùng bạn bè chưa?' : 'Ready to share expenses with friends?'}
@@ -169,7 +195,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* Empty State */}
-              {groups.length === 0 ? (
+              {joinedGroups.length === 0 ? (
                 <Card className="p-8 text-center border-dashed bg-transparent shadow-none border-2 border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-3">
                   <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-1">
                     <Users className="w-8 h-8 text-slate-400" />
@@ -188,11 +214,7 @@ export const Dashboard: React.FC = () => {
                 </Card>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {groups.slice(0, 3).map(group => {
-                    // Find the most recent activity for this group
-                    const groupActivities = activities.filter(a => a.groupId === group.id);
-                    const lastActivity = groupActivities.length > 0 ? groupActivities[0] : null;
-
+                  {joinedGroups.slice(0, 3).map((group: any) => {
                     return (
                       <Link key={group.id} to={`/groups/${group.id}`} className="block outline-none group/card">
                         <Card className="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md transition-all flex items-center justify-between">
@@ -206,13 +228,7 @@ export const Dashboard: React.FC = () => {
                                 {group.name}
                               </h4>
                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                                {group.members.length} {language === 'vi' ? 'thành viên' : 'members'}
-                                {lastActivity && (
-                                  <>
-                                    <span className="mx-1.5 opacity-50">•</span>
-                                    <span>{lastActivity.userName} {language === 'vi' ? 'vừa hoạt động' : 'was active'}</span>
-                                  </>
-                                )}
+                                {group.members?.length || 1} {language === 'vi' ? 'thành viên' : 'members'}
                               </p>
                             </div>
                           </div>
@@ -231,40 +247,11 @@ export const Dashboard: React.FC = () => {
                 {language === 'vi' ? 'Hoạt Động Mới Nhất' : 'Recent Activity'}
               </h3>
 
-              {activities.length === 0 ? (
+              {true ? (
                 <p className="text-sm text-slate-500">
-                  {language === 'vi' ? 'Chưa có hoạt động nào.' : 'No recent activity.'}
+                  {language === 'vi' ? 'Tính năng đang được phát triển.' : 'Feature under development.'}
                 </p>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {activities.slice(0, 5).map(act => (
-                    <div key={act.id} className="flex items-start gap-3">
-                      <Avatar
-                        name={act.userName}
-                        src={act.avatarUrl}
-                        avatarColor={act.avatarColor}
-                        size="sm"
-                      />
-                      <div className="flex flex-col flex-grow pt-0.5">
-                        <p className="text-sm text-slate-700 dark:text-slate-200 leading-snug">
-                          <span className="font-extrabold text-slate-900 dark:text-white">{act.userName}</span>
-                          {act.type === 'expense_add' && (language === 'vi' ? ' đã thêm hóa đơn ' : ' added a bill ')}
-                          {act.type === 'settlement' && (language === 'vi' ? ' đã thanh toán ' : ' settled up ')}
-                          {act.type === 'member_joined' && (language === 'vi' ? ' đã tham gia ' : ' joined ')}
-                          {act.type === 'group_create' && (language === 'vi' ? ' đã tạo ' : ' created ')}
-
-                          {act.type === 'expense_add' && <span className="font-bold">"{act.details.expenseTitle}"</span>}
-                          {act.type === 'group_create' && <span className="font-bold">"{act.details.groupName}"</span>}
-                          {act.type === 'member_joined' && <span className="font-bold">"{act.groupName}"</span>}
-                        </p>
-                        <span className="text-[10px] sm:text-xs text-slate-400 mt-1">
-                          {formatRelativeTime(act.timestamp, language)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              ) : null}
             </motion.div>
           </div>
 
@@ -281,9 +268,10 @@ export const Dashboard: React.FC = () => {
             className="uppercase font-bold tracking-widest text-center"
             maxLength={6}
             required
+            disabled={joinMutation.isPending}
           />
-          <Button type="submit" className="w-full h-12 font-bold shadow-md" leftIcon={<LogIn className="w-5 h-5" />}>
-            {language === 'vi' ? 'Tham Gia Ngay' : 'Join Now'}
+          <Button disabled={joinMutation.isPending} type="submit" className="w-full h-12 font-bold shadow-md" leftIcon={joinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}>
+            {joinMutation.isPending ? (language === 'vi' ? 'Đang kết nối...' : 'Connecting...') : (language === 'vi' ? 'Tham Gia Ngay' : 'Join Now')}
           </Button>
         </form>
       </Modal>
@@ -295,9 +283,10 @@ export const Dashboard: React.FC = () => {
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
             required
+            disabled={createMutation.isPending}
           />
-          <Button type="submit" className="w-full h-12 font-bold shadow-md" leftIcon={<Plus className="w-5 h-5" />}>
-            {language === 'vi' ? 'Tạo Nhóm' : 'Create Group'}
+          <Button disabled={createMutation.isPending} type="submit" className="w-full h-12 font-bold shadow-md" leftIcon={createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
+            {createMutation.isPending ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') : (language === 'vi' ? 'Tạo Nhóm' : 'Create Group')}
           </Button>
         </form>
       </Modal>

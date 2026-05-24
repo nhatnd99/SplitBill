@@ -3,6 +3,7 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { Wallet, Plus } from 'lucide-react';
 import { useAppStore } from '../store';
+import { useAuthStore } from '../store/useAuthStore';
 import { formatCurrency } from '../utils/formatters';
 import type { Group } from '../types';
 
@@ -12,7 +13,8 @@ interface GroupFundCardProps {
 }
 
 export const GroupFundCard: React.FC<GroupFundCardProps> = ({ group, onAddFund }) => {
-  const { language, currency, currentUser } = useAppStore();
+  const { language, currency } = useAppStore();
+  const user = useAuthStore(state => state.user);
 
   const totalFundAdded = group.fundBalance || 0;
   const totalBillsAmount = group.totalExpense || 0;
@@ -21,7 +23,7 @@ export const GroupFundCard: React.FC<GroupFundCardProps> = ({ group, onAddFund }
   const isNegative = remainingBalance < 0;
   const isZero = remainingBalance === 0;
 
-  const isOwner = currentUser?.id === group.createdBy;
+  const isOwner = user?.id === group.createdBy;
 
   return (
     <Card className={`p-4 sm:p-5 flex flex-col gap-4 border-2 transition-all ${isNegative ? 'border-rose-500/50 bg-rose-50 dark:bg-rose-950/20' : 'border-transparent bg-white dark:bg-slate-900'} shadow-sm`}>

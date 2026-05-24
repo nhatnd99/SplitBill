@@ -1,29 +1,27 @@
 import React from 'react';
 import { useAppStore } from '../store';
+import { useAuthStore } from '../store/useAuthStore';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { 
   Globe, DollarSign, Sun, Moon, 
-  Settings, Users, ShieldAlert, BadgeCheck
+  Settings, LogOut, BadgeCheck
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const Profile: React.FC = () => {
   const { 
-    currentUser, theme, setTheme, language, setLanguage, 
-    currency, setCurrency, users, setCurrentUser, addToast 
+    theme, setTheme, language, setLanguage, 
+    currency, setCurrency, addToast 
   } = useAppStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
 
-  const handleUserSwitch = (userId: string) => {
-    const targetUser = users.find(u => u.id === userId);
-    if (targetUser) {
-      setCurrentUser(targetUser);
-    }
-  };
-
-  const handleResetApp = () => {
-    if (window.confirm(language === 'vi' ? 'Bạn chắc chắn muốn đặt lại dữ liệu sandbox chứ?' : 'Are you sure you want to reset sandbox data?')) {
-      window.location.reload();
+  const handleLogout = () => {
+    if (window.confirm(language === 'vi' ? 'Bạn chắc chắn muốn đăng xuất?' : 'Are you sure you want to log out?')) {
+      logout();
+      navigate('/welcome');
     }
   };
 
@@ -49,22 +47,22 @@ export const Profile: React.FC = () => {
             {language === 'vi' ? 'Tài khoản hiện tại' : 'Active Profile'}
           </h4>
 
-          {currentUser && (
+          {user && (
             <Card variant="accent" className="p-6 flex flex-col items-center text-center bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-              <Avatar src={currentUser.avatarUrl} name={currentUser.name} avatarColor={currentUser.avatarColor} size="2xl" showBorder />
+              <Avatar src={user.avatarUrl} name={user.name} avatarColor={user.avatarColor} size="2xl" showBorder />
               
               <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 mt-4 flex items-center gap-1">
-                {currentUser.name}
+                {user.name}
                 <BadgeCheck className="w-4 h-4 text-primary-500 shrink-0" />
               </h3>
               
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {currentUser.email}
+                {user.email || 'Anonymous Session'}
               </p>
               
-              {currentUser.phone && (
+              {user.phone && (
                 <span className="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200/40 dark:border-slate-700/40 text-slate-600 dark:text-slate-300 font-bold px-3 py-1 rounded-full mt-3">
-                  {currentUser.phone}
+                  {user.phone}
                 </span>
               )}
             </Card>
@@ -72,46 +70,23 @@ export const Profile: React.FC = () => {
 
           {/* Quick Sandbox user switching */}
           <Card className="p-5 flex flex-col gap-3 bg-white dark:bg-slate-900">
-            <h5 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              <Users className="w-4 h-4 text-primary-500" />
-              {language === 'vi' ? 'Đổi tài khoản Sandbox' : 'Sandbox Personas'}
+            <h5 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 uppercase tracking-wider text-rose-500 dark:text-rose-500">
+              <LogOut className="w-4 h-4" />
+              {language === 'vi' ? 'Đăng xuất' : 'Logout'}
             </h5>
             <p className="text-[10px] text-slate-400 leading-normal">
               {language === 'vi' 
-                ? 'Chuyển sang góc nhìn của người dùng khác để kiểm tra xem họ nợ bạn hay bạn nợ họ tương ứng.' 
-                : 'Switch views to inspect how groups and balances recalculate based on their active session perspective.'}
+                ? 'Đăng xuất sẽ xóa session hiện tại của bạn. Bạn sẽ cần tạo một tên mới hoặc đăng nhập lại.' 
+                : 'Logging out clears your current session. You will need to sign in or create a new anonymous profile.'}
             </p>
-            <div className="flex flex-col gap-2 mt-1">
-              {users.map((user) => {
-                const isActive = user.id === currentUser?.id;
-                return (
-                  <button
-                    key={user.id}
-                    onClick={() => handleUserSwitch(user.id)}
-                    className={`
-                      w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition-all select-none cursor-pointer
-                      ${
-                        isActive
-                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10'
-                          : 'border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={user.name} src={user.avatarUrl} avatarColor={user.avatarColor} size="sm" />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                        {user.name}
-                      </span>
-                    </div>
-                    {isActive && (
-                      <span className="text-[9px] bg-primary-500 text-white font-extrabold px-2 py-0.5 rounded-md uppercase">
-                        Active
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleLogout}
+              className="mt-2 font-bold"
+            >
+              {language === 'vi' ? 'Đăng xuất ngay' : 'Logout Now'}
+            </Button>
           </Card>
         </div>
 
@@ -239,34 +214,6 @@ export const Profile: React.FC = () => {
                   🇺🇸 <span>English</span>
                 </button>
               </div>
-            </div>
-
-            <hr className="border-slate-100 dark:border-slate-800 my-2" />
-
-            {/* Sandbox reset database */}
-            <div className="p-4 bg-rose-50 dark:bg-rose-500/5 rounded-2xl border border-rose-100 dark:border-rose-500/10 flex items-center justify-between mt-2">
-              <div className="flex items-start gap-3 text-left">
-                <ShieldAlert className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
-                <div>
-                  <h5 className="text-xs font-bold text-rose-800 dark:text-rose-400">
-                    {language === 'vi' ? 'Đặt lại Dữ liệu Sandbox' : 'Reset Sandbox Sandbox'}
-                  </h5>
-                  <p className="text-[10px] text-rose-500 dark:text-rose-500/80 leading-normal mt-0.5">
-                    {language === 'vi' 
-                      ? 'Thao tác này sẽ làm mới toàn bộ dữ liệu mock ban đầu.' 
-                      : 'Wipes all dynamic entries in memory and loads base mock values.'}
-                  </p>
-                </div>
-              </div>
-
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleResetApp}
-                className="font-bold shrink-0 text-xs px-3 py-1.5"
-              >
-                {language === 'vi' ? 'Đặt lại' : 'Reset'}
-              </Button>
             </div>
 
           </div>
