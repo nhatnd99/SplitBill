@@ -1,17 +1,17 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '../store';
-import { GroupCard } from '../components/GroupCard';
-import { Modal } from '../components/Modal';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
-import { EmptyState } from '../components/EmptyState';
+import { useAppStore } from '@/store';
+import { GroupCard } from '@/components/GroupCard';
+import { Modal } from '@/components/Modal';
+import { Input } from '@/components/Input';
+import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
 import { Search, Plus, Users, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { GroupCategory } from '../types';
+import type { GroupCategory } from '@/types';
 import { useMutation } from '@tanstack/react-query';
-import { groupsApi } from '../api/groups.api';
+import { groupsApi } from '@/api/groups.api';
 import toast from 'react-hot-toast';
 
 export const Groups: React.FC = () => {

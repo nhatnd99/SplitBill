@@ -1,29 +1,29 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAppStore } from '../store';
+import { useAppStore } from '@/store';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../store/useAuthStore';
-import { Avatar } from '../components/Avatar';
-import { Card } from '../components/Card';
-import { Modal } from '../components/Modal';
-import { Button } from '../components/Button';
-import { formatCurrency } from '../utils/formatters';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Avatar } from '@/components/Avatar';
+import { Card } from '@/components/Card';
+import { Modal } from '@/components/Modal';
+import { Button } from '@/components/Button';
+import { formatCurrency } from '@/utils/formatters';
 import {
   ArrowLeft, Copy, Receipt, Trash2, Users, FileText,
   CheckCircle2, PieChart, Activity, DollarSign, ArrowRight, Wallet, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import { GroupFundCard } from '../components/GroupFundCard';
-import { FundHistoryTab } from '../components/FundHistoryTab';
-import { AddFundModal } from '../components/AddFundModal';
+import { GroupFundCard } from '@/components/GroupFundCard';
+import { FundHistoryTab } from '@/components/FundHistoryTab';
+import { AddFundModal } from '@/components/AddFundModal';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { groupsApi } from '../api/groups.api';
-import { billsApi } from '../api/bills.api';
-import { settlementsApi } from '../api/settlements.api';
-import { queryKeys } from '../api/queryKeys';
-import { connectSocket } from '../sockets/socket';
+import { groupsApi } from '@/api/groups.api';
+import { billsApi } from '@/api/bills.api';
+import { settlementsApi } from '@/api/settlements.api';
+import { queryKeys } from '@/api/queryKeys';
+import { connectSocket } from '@/sockets/socket';
 import toast from 'react-hot-toast';
 
 export const GroupDetail: React.FC = () => {

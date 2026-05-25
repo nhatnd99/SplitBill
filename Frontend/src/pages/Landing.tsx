@@ -1,16 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '../store';
-import { useAuthStore } from '../store/useAuthStore';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
-import { Card } from '../components/Card';
+import { useAppStore } from '@/store';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Input } from '@/components/Input';
+import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { Wallet, LogIn, Plus, ShieldCheck, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { GroupCategory } from '../types';
-import { authApi } from '../api/auth.api';
-import { groupsApi } from '../api/groups.api';
+import type { GroupCategory } from '@/types';
+import { authApi } from '@/api/auth.api';
+import { groupsApi } from '@/api/groups.api';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 

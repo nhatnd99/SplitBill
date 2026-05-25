@@ -1,5 +1,5 @@
-import { api } from './client';
-import type { GroupDTO } from '../types';
+import { api } from '@/api/client';
+import type { GroupDTO } from '@/types';
 
 export const groupsApi = {
   createGroup: async (groupData: { name: string; description?: string; category: string }) => {

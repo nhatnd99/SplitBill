@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { Card } from './Card';
-import { Button } from './Button';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
 import { Wallet, Plus } from 'lucide-react';
-import { useAppStore } from '../store';
-import { useAuthStore } from '../store/useAuthStore';
-import { formatCurrency } from '../utils/formatters';
-import type { Group } from '../types';
+import { useAppStore } from '@/store';
+import { useAuthStore } from '@/store/useAuthStore';
+import { formatCurrency } from '@/utils/formatters';
+import type { Group } from '@/types';
 
 interface GroupFundCardProps {
   group: Group;

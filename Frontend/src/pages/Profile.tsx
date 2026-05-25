@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { useAppStore } from '../store';
-import { useAuthStore } from '../store/useAuthStore';
-import { Avatar } from '../components/Avatar';
-import { Card } from '../components/Card';
-import { Button } from '../components/Button';
+import { useAppStore } from '@/store';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Avatar } from '@/components/Avatar';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
 import {
-  Globe, DollarSign, Sun, Moon,
+  DollarSign, Sun, Moon,
   Settings, LogOut, BadgeCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 export const Profile: React.FC = () => {
   const { t } = useTranslation();
   const {
-    theme, setTheme, language, setLanguage,
+    theme, setTheme,
     currency, setCurrency, addToast
   } = useAppStore();
   const { user, logout } = useAuthStore();

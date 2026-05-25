@@ -1,15 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
-import { useAppStore } from '../../store';
-import { useAuthStore } from '../../store/useAuthStore';
-import { Button } from '../Button';
-import { Input } from '../Input';
-import { Avatar } from '../Avatar';
+import { useAppStore } from '@/store';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { Avatar } from '@/components/Avatar';
 import { ChevronDown, ArrowRight, ArrowLeft, Percent, Calculator, Users, Loader2 } from 'lucide-react';
-import { formatCurrency, getCategoryLabel, getCategoryEmoji } from '../../utils/formatters';
+import { formatCurrency, getCategoryLabel, getCategoryEmoji } from '@/utils/formatters';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { billsApi } from '../../api/bills.api';
-import { queryKeys } from '../../api/queryKeys';
+import { billsApi } from '@/api/bills.api';
+import { queryKeys } from '@/api/queryKeys';
 import toast from 'react-hot-toast';
 
 interface CreateBillFlowProps {

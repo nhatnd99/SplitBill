@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import type { Group } from '../types';
-import { Avatar } from './Avatar';
-import { Card } from './Card';
-import { Badge } from './Badge';
+import type { Group } from '@/types';
+import { Avatar } from '@/components/Avatar';
+import { Card } from '@/components/Card';
+import { Badge } from '@/components/Badge';
 import { Folder, MapPin, Home, Briefcase, Coffee } from 'lucide-react';
-import { useAppStore } from '../store';
-import { getCategoryLabel } from '../utils/formatters';
+import { useAppStore } from '@/store';
+import { getCategoryLabel } from '@/utils/formatters';
 
 interface GroupCardProps {
   group: Group;

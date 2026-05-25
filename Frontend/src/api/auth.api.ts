@@ -1,5 +1,5 @@
-import { api } from './client';
-import type { UserDTO } from '../types';
+import { api } from '@/api/client';
+import type { UserDTO } from '@/types';
 
 export const authApi = {
   login: async (credentials: any) => {

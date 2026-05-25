@@ -1,4 +1,4 @@
-import i18n from '../i18n';
+import i18n from '@/i18n';
 
 // Currency formatting utility — shared across the entire app
 export const formatCurrency = (val: number, currency: string = 'VND'): string => {

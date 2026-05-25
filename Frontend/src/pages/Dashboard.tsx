@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../store';
-import { useAuthStore } from '../store/useAuthStore';
-import { Card } from '../components/Card';
-import { Avatar } from '../components/Avatar';
-import { Modal } from '../components/Modal';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
-// import { formatCurrency } from '../utils/formatters';
+import { useAppStore } from '@/store';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Card } from '@/components/Card';
+import { Avatar } from '@/components/Avatar';
+import { Modal } from '@/components/Modal';
+import { Input } from '@/components/Input';
+import { Button } from '@/components/Button';
+// import { formatCurrency } from '@/utils/formatters';
 import { Sun, Moon, Plus, Users, LogIn, ChevronRight, Receipt, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { groupsApi } from '../api/groups.api';
+import { groupsApi } from '@/api/groups.api';
 import toast from 'react-hot-toast';
 
 import { useTranslation } from 'react-i18next';

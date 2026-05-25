@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import React, { useMemo } from 'react';
-import { Card } from './Card';
-import { Avatar } from './Avatar';
-import { formatCurrency } from '../utils/formatters';
-import { useAppStore } from '../store';
-import type { Group } from '../types';
+import { Card } from '@/components/Card';
+import { Avatar } from '@/components/Avatar';
+import { formatCurrency } from '@/utils/formatters';
+import { useAppStore } from '@/store';
+import type { Group } from '@/types';
 import { Wallet, Calendar, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';

@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import type { UserBalance } from '../types';
-import { Avatar } from './Avatar';
-import { Button } from './Button';
-import { useAppStore } from '../store';
+import type { UserBalance } from '@/types';
+import { Avatar } from '@/components/Avatar';
+import { Button } from '@/components/Button';
+import { useAppStore } from '@/store';
 import { ArrowUpRight, ArrowDownLeft, CheckCircle2 } from 'lucide-react';
 
 interface BalanceCardProps {
@@ -18,7 +18,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   showAction = true,
 }) => {
   const { t } = useTranslation();
-  const { currency, language } = useAppStore();
+  const { currency } = useAppStore();
 
   const formatCurrency = (val: number) => {
     const absVal = Math.abs(val);
@@ -69,9 +69,8 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         {!isSettled && (
           <div className="text-right">
             <span
-              className={`text-sm font-extrabold ${
-                isOwed ? 'text-emerald-500' : 'text-rose-500'
-              }`}
+              className={`text-sm font-extrabold ${isOwed ? 'text-emerald-500' : 'text-rose-500'
+                }`}
             >
               {isOwed ? '+' : '-'}{formatCurrency(balance.amount)}
             </span>

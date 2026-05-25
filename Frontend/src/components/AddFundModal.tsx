@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Modal } from './Modal';
-import { Button } from './Button';
-import { Input } from './Input';
-import { useAppStore } from '../store';
+import { Modal } from '@/components/Modal';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { groupsApi } from '../api/groups.api';
-import { queryKeys } from '../api/queryKeys';
+import { groupsApi } from '@/api/groups.api';
+import { queryKeys } from '@/api/queryKeys';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 

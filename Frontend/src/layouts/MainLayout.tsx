@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
-import { useAppStore, type Toast } from '../store';
-import { Avatar } from '../components/Avatar';
-import { Button } from '../components/Button';
-import { Modal } from '../components/Modal';
+import { useAppStore, type Toast } from '@/store';
+import { Avatar } from '@/components/Avatar';
+import { Button } from '@/components/Button';
+import { Modal } from '@/components/Modal';
 import { 
   Wallet, LayoutDashboard, FolderHeart, History, User2, Plus, 
   LogOut, Sun, Moon, CheckCircle2, AlertTriangle, Info, X
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CreateBillFlow } from '../components/features/CreateBillFlow';
-import { useAuthStore } from '../store/useAuthStore';
+import { CreateBillFlow } from '@/components/features/CreateBillFlow';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export const MainLayout: React.FC = () => {
   const { 

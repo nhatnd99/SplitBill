@@ -1,5 +1,5 @@
-import { api } from './client';
-import type { Expense } from '../types';
+import { api } from '@/api/client';
+import type { Expense } from '@/types';
 
 export const billsApi = {
   getExpenses: async (groupId: string): Promise<{ data: { expenses: Expense[] } }> => {

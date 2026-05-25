@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { MainLayout } from './layouts/MainLayout';
-import { Dashboard } from './pages/Dashboard';
-import { Groups } from './pages/Groups';
-import { GroupDetail } from './pages/GroupDetail';
-import { ActivityHistory } from './pages/ActivityHistory';
-import { Profile } from './pages/Profile';
-import { Landing } from './pages/Landing';
-import { useAppStore } from './store';
-import { useAuthStore } from './store/useAuthStore';
+import { MainLayout } from '@/layouts/MainLayout';
+import { Dashboard } from '@/pages/Dashboard';
+import { Groups } from '@/pages/Groups';
+import { GroupDetail } from '@/pages/GroupDetail';
+import { ActivityHistory } from '@/pages/ActivityHistory';
+import { Profile } from '@/pages/Profile';
+import { Landing } from '@/pages/Landing';
+import { useAppStore } from '@/store';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

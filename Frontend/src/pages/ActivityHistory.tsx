@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '../components/EmptyState';
+import { EmptyState } from '@/components/EmptyState';
 import { History, FileSpreadsheet } from 'lucide-react';
 
 export const ActivityHistory: React.FC = () => {
