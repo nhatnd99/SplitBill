@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { Input } from './Input';
 import { useAppStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { groupsApi } from '../api/groups.api';
 import { queryKeys } from '../api/queryKeys';
@@ -16,7 +17,7 @@ interface AddFundModalProps {
 }
 
 export const AddFundModal: React.FC<AddFundModalProps> = ({ isOpen, onClose, groupId }) => {
-  const { language } = useAppStore();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
@@ -25,7 +26,7 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({ isOpen, onClose, gro
     mutationFn: (data: { amount: number, note: string }) => groupsApi.addFund(groupId, data.amount, data.note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
-      toast.success(language === 'vi' ? 'Đã thêm quỹ!' : 'Fund added!');
+      toast.success(t('fund.added'));
       setAmount('');
       setNote('');
       onClose();
@@ -39,7 +40,7 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({ isOpen, onClose, gro
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (!isNaN(numAmount) && numAmount > 0) {
-      addFundMutation.mutate({ amount: numAmount, note: note || (language === 'vi' ? 'Thêm quỹ' : 'Add fund') });
+      addFundMutation.mutate({ amount: numAmount, note: note || t('fund.addFund') });
     }
   };
 
@@ -47,12 +48,12 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({ isOpen, onClose, gro
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={language === 'vi' ? 'Thêm Quỹ Nhóm' : 'Add Group Fund'}
+      title={t('fund.title')}
       size="sm"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
-          label={language === 'vi' ? 'Số tiền' : 'Amount'}
+          label={t('common.amount')}
           type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
@@ -62,18 +63,18 @@ export const AddFundModal: React.FC<AddFundModalProps> = ({ isOpen, onClose, gro
           step="0.01"
         />
         <Input
-          label={language === 'vi' ? 'Ghi chú (Tùy chọn)' : 'Note (Optional)'}
+          label={t('fund.noteOptional')}
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder={language === 'vi' ? 'Ví dụ: Nộp quỹ đầu tháng' : 'e.g. Monthly contribution'}
+          placeholder={t('fund.notePlaceholder')}
         />
         <div className="flex gap-3 mt-4">
           <Button variant="ghost" className="flex-1 font-bold" onClick={onClose} type="button" disabled={addFundMutation.isPending}>
-            {language === 'vi' ? 'Hủy' : 'Cancel'}
+            {t('common.cancel')}
           </Button>
           <Button type="submit" className="flex-1 font-bold shadow-md" disabled={addFundMutation.isPending} leftIcon={addFundMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}>
-            {addFundMutation.isPending ? (language === 'vi' ? 'Đang xử lý...' : 'Processing...') : (language === 'vi' ? 'Xác Nhận' : 'Confirm')}
+            {addFundMutation.isPending ? t('fund.processing') : t('common.confirm')}
           </Button>
         </div>
       </form>

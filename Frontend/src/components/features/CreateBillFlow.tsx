@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -16,6 +17,7 @@ interface CreateBillFlowProps {
 }
 
 export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
+  const { t } = useTranslation();
   const { joinedGroups, language, addToast, currency } = useAppStore();
   const user = useAuthStore(state => state.user);
   const queryClient = useQueryClient();
@@ -41,7 +43,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       await billsApi.createExpense(selectedGroupId, expenseData);
     },
     onSuccess: () => {
-      toast.success(language === 'vi' ? 'Đã thêm chi phí!' : 'Expense added!');
+      toast.success(t('auto.expenseAdded'));
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses(selectedGroupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.group(selectedGroupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances(selectedGroupId) });
@@ -77,7 +79,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       const remainingToPay = Math.max(0, numAmount - coveredByFund);
 
       if (!title || !amount || !selectedGroupId || (remainingToPay > 0 && !paidBy)) {
-        addToast(language === 'vi' ? 'Vui lòng nhập đầy đủ thông tin' : 'Please fill all fields', 'error');
+        addToast(t('auto.pleaseFillAllFields'), 'error');
         return;
       }
       setStep(2);
@@ -109,7 +111,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       
       // Allow minor float differences (e.g. 99.99%)
       if (Math.abs(totalP - 100) > 0.1) {
-        addToast(language === 'vi' ? `Tổng phần trăm phải là 100% (Hiện tại: ${totalP}%)` : `Total percentage must be 100% (Current: ${totalP}%)`, 'error');
+        addToast(t('auto.totalPercentageMustBe100', { totalP }), 'error');
         return;
       }
       
@@ -127,7 +129,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       Object.values(customSplits).forEach(v => totalE += (v || 0));
       
       if (Math.abs(totalE - amountNum) > 1) {
-        addToast(language === 'vi' ? `Tổng số tiền phải bằng ${formatCurrency(amountNum, currency)}` : `Total amount must equal ${formatCurrency(amountNum, currency)}`, 'error');
+        addToast(t('auto.totalAmountMustEqual', { amount: formatCurrency(amountNum, currency) }), 'error');
         return;
       }
 
@@ -167,7 +169,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
     return (
       <div className="text-center p-6">
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {language === 'vi' ? 'Bạn cần tạo một nhóm trước khi thêm chi phí!' : 'You must create a group before adding an expense!'}
+          {t('auto.youMustCreateAGroupBefore')}
         </p>
       </div>
     );
@@ -201,7 +203,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
         <div className="flex flex-col gap-4 animate-fade-in">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1">
-              {language === 'vi' ? 'Chọn nhóm' : 'Select Group'}
+              {t('auto.selectGroup')}
             </label>
             <div className="relative">
               <select
@@ -220,7 +222,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
           </div>
 
           <Input
-            label={language === 'vi' ? 'Tên chi phí' : 'Expense Title'}
+            label={t('auto.expenseTitle')}
             placeholder="e.g. Cơm trưa, Grab..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -229,7 +231,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
           />
 
           <Input
-            label={language === 'vi' ? 'Số tiền' : 'Amount'}
+            label={t('auto.amount')}
             type="number"
             placeholder="e.g. 150000"
             value={amount}
@@ -242,16 +244,16 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
           {parseFloat(amount) > 0 && targetGroup && (
             <div className="bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col gap-2 mb-2">
               <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-500">
-                <span>{language === 'vi' ? 'Tổng Chi Phí:' : 'Bill Total:'}</span>
+                <span>{t('auto.billTotal')}</span>
                 <span className="text-slate-800 dark:text-slate-200">{formatCurrency(parseFloat(amount), currency)}</span>
               </div>
               <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-indigo-500">
-                <span>{language === 'vi' ? 'Dùng Quỹ Nhóm:' : 'Covered by Fund:'}</span>
+                <span>{t('auto.coveredByFund')}</span>
                 <span>-{formatCurrency(Math.min(parseFloat(amount), targetGroup.fundBalance || 0), currency)}</span>
               </div>
               <div className="h-px w-full bg-slate-200 dark:bg-slate-700 my-1"></div>
               <div className="flex items-center justify-between text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100">
-                <span>{language === 'vi' ? 'Cần Trả Thêm:' : 'Remaining to Pay:'}</span>
+                <span>{t('auto.remainingToPay')}</span>
                 <span>{formatCurrency(Math.max(0, parseFloat(amount) - (targetGroup.fundBalance || 0)), currency)}</span>
               </div>
             </div>
@@ -261,7 +263,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
             {parseFloat(amount) > 0 && targetGroup && (parseFloat(amount) - (targetGroup.fundBalance || 0)) > 0 ? (
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1">
-                  {language === 'vi' ? 'Người trả phần còn lại' : 'Paid By'}
+                  {t('auto.paidBy')}
                 </label>
                 <div className="relative">
                   <select
@@ -286,7 +288,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
               parseFloat(amount) > 0 && targetGroup && (
                 <div className="flex flex-col justify-center">
                   <span className="text-xs font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-2 rounded-xl text-center border border-indigo-100 dark:border-indigo-500/20">
-                    {language === 'vi' ? 'Quỹ nhóm trả toàn bộ' : 'Fully covered by group fund'}
+                    {t('auto.fullyCoveredByGroupFund')}
                   </span>
                 </div>
               )
@@ -294,7 +296,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1">
-                {language === 'vi' ? 'Danh mục' : 'Category'}
+                {t('auto.category')}
               </label>
               <div className="relative">
                 <select
@@ -314,14 +316,14 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
           </div>
           
           <Button type="button" onClick={handleNext} className="mt-4" rightIcon={<ArrowRight className="w-4 h-4" />}>
-            {language === 'vi' ? 'Tiếp tục' : 'Next'}
+            {t('auto.next')}
           </Button>
         </div>
       )}
 
       {step === 2 && (
         <div className="flex flex-col gap-4 animate-fade-in">
-          <h4 className="font-bold text-lg mb-2">{language === 'vi' ? 'Bạn muốn chia thế nào?' : 'How do you want to split?'}</h4>
+          <h4 className="font-bold text-lg mb-2">{t('auto.howDoYouWantToSplit')}</h4>
           
           <div className="grid gap-3">
             <button
@@ -333,8 +335,8 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <h5 className="font-bold text-slate-800 dark:text-slate-100">{language === 'vi' ? 'Chia đều' : 'Split Equally'}</h5>
-                <p className="text-xs text-slate-500">{language === 'vi' ? 'Chia đều số tiền cho tất cả thành viên' : 'Divide the cost evenly among all members'}</p>
+                <h5 className="font-bold text-slate-800 dark:text-slate-100">{t('auto.splitEqually')}</h5>
+                <p className="text-xs text-slate-500">{t('auto.divideTheCostEvenlyAmongAll')}</p>
               </div>
             </button>
 
@@ -347,8 +349,8 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
                 <Percent className="w-5 h-5" />
               </div>
               <div>
-                <h5 className="font-bold text-slate-800 dark:text-slate-100">{language === 'vi' ? 'Theo phần trăm' : 'By Percentage'}</h5>
-                <p className="text-xs text-slate-500">{language === 'vi' ? 'Phân bổ theo tỷ lệ % (tổng 100%)' : 'Allocate by percentages (total 100%)'}</p>
+                <h5 className="font-bold text-slate-800 dark:text-slate-100">{t('auto.byPercentage')}</h5>
+                <p className="text-xs text-slate-500">{t('auto.allocateByPercentagesTotal100')}</p>
               </div>
             </button>
 
@@ -361,14 +363,14 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
-                <h5 className="font-bold text-slate-800 dark:text-slate-100">{language === 'vi' ? 'Nhập số tiền chính xác' : 'Exact Amounts'}</h5>
-                <p className="text-xs text-slate-500">{language === 'vi' ? 'Nhập chính xác số tiền từng người nợ' : 'Specify exactly how much each person owes'}</p>
+                <h5 className="font-bold text-slate-800 dark:text-slate-100">{t('auto.exactAmounts')}</h5>
+                <p className="text-xs text-slate-500">{t('auto.specifyExactlyHowMuchEachPerson')}</p>
               </div>
             </button>
           </div>
 
           <Button type="button" variant="ghost" onClick={() => setStep(1)} leftIcon={<ArrowLeft className="w-4 h-4" />}>
-            {language === 'vi' ? 'Quay lại' : 'Back'}
+            {t('auto.back')}
           </Button>
         </div>
       )}
@@ -376,7 +378,7 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
       {step === 3 && (
         <div className="flex flex-col gap-4 animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="font-bold text-lg">{language === 'vi' ? 'Chi tiết chia tiền' : 'Split Details'}</h4>
+            <h4 className="font-bold text-lg">{t('auto.splitDetails')}</h4>
             <span className="text-sm font-black text-primary-500">{formatCurrency(parseFloat(amount), currency)}</span>
           </div>
 
@@ -455,10 +457,10 @@ export const CreateBillFlow: React.FC<CreateBillFlowProps> = ({ onClose }) => {
 
           <div className="mt-4 flex gap-3">
             <Button disabled={createMutation.isPending} type="button" variant="outline" onClick={() => setStep(2)} className="w-1/3 px-0">
-              {language === 'vi' ? 'Quay lại' : 'Back'}
+              {t('auto.back')}
             </Button>
             <Button disabled={createMutation.isPending} type="submit" variant="primary" className="w-2/3 font-bold" leftIcon={createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}>
-              {createMutation.isPending ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') : (language === 'vi' ? 'Xác nhận tạo' : 'Create Bill')}
+              {createMutation.isPending ? (t('auto.creating')) : (t('auto.createBill'))}
             </Button>
           </div>
         </div>

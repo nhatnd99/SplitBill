@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
@@ -14,6 +15,7 @@ import { groupsApi } from '../api/groups.api';
 import toast from 'react-hot-toast';
 
 export const Groups: React.FC = () => {
+  const { t } = useTranslation();
   const { joinedGroups, addJoinedGroup, language } = useAppStore();
   const navigate = useNavigate();
 
@@ -29,11 +31,11 @@ export const Groups: React.FC = () => {
 
   // Categories list
   const categories = [
-    { id: 'all', label: language === 'vi' ? 'Tất cả' : 'All' },
-    { id: 'trip', label: language === 'vi' ? '🌴 Du lịch' : '🌴 Trip' },
-    { id: 'home', label: language === 'vi' ? '🏠 Nhà cửa' : '🏠 Home' },
-    { id: 'office', label: language === 'vi' ? '🍱 Văn phòng' : '🍱 Office' },
-    { id: 'couple', label: language === 'vi' ? '❤️ Cặp đôi' : '❤️ Couple' },
+    { id: 'all', label: t('auto.all') },
+    { id: 'trip', label: t('auto.trip') },
+    { id: 'home', label: t('auto.home') },
+    { id: 'office', label: t('auto.office') },
+    { id: 'couple', label: t('auto.couple') },
   ];
 
   // Filter groups
@@ -57,7 +59,7 @@ export const Groups: React.FC = () => {
     },
     onSuccess: (group) => {
       addJoinedGroup(group);
-      toast.success(language === 'vi' ? 'Tạo nhóm thành công!' : 'Group created successfully!');
+      toast.success(t('auto.groupCreatedSuccessfully'));
       
       // Reset Form
       setNewGroupName('');
@@ -80,8 +82,8 @@ export const Groups: React.FC = () => {
   const createGroupForm = (
     <form onSubmit={handleCreateGroup} className="flex flex-col gap-4">
       <Input
-        label={language === 'vi' ? 'Tên nhóm *' : 'Group Name *'}
-        placeholder={language === 'vi' ? 'e.g. Du lịch Sapa 2026, Tiền nhà trọ...' : 'e.g. Sapa Trip, Shared Bills...'}
+        label={t('auto.groupName')}
+        placeholder={t('auto.eGSapaTripSharedBills')}
         value={newGroupName}
         onChange={(e) => setNewGroupName(e.target.value)}
         required
@@ -89,8 +91,8 @@ export const Groups: React.FC = () => {
       />
 
       <Input
-        label={language === 'vi' ? 'Mô tả ngắn' : 'Short Description'}
-        placeholder={language === 'vi' ? 'e.g. Chuyến đi 3 ngày 2 đêm cuối tuần...' : 'e.g. Shared expenses for Sapa trip...'}
+        label={t('auto.shortDescription')}
+        placeholder={t('auto.eGSharedExpensesForSapa')}
         value={newGroupDesc}
         onChange={(e) => setNewGroupDesc(e.target.value)}
         disabled={createMutation.isPending}
@@ -99,17 +101,17 @@ export const Groups: React.FC = () => {
       {/* Category selector */}
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1">
-          {language === 'vi' ? 'Danh mục nhóm' : 'Group Category'}
+          {t('auto.groupCategory')}
         </label>
         <div className="grid grid-cols-3 gap-2">
           {(['trip', 'home', 'office', 'couple', 'other'] as GroupCategory[]).map((cat) => {
             const isSelected = newGroupCat === cat;
             const labels = {
-              trip: language === 'vi' ? '🌴 Du lịch' : '🌴 Trip',
-              home: language === 'vi' ? '🏠 Nhà cửa' : '🏠 Home',
-              office: language === 'vi' ? '🍱 Công sở' : '🍱 Office',
-              couple: language === 'vi' ? '❤️ Cặp đôi' : '❤️ Couple',
-              other: language === 'vi' ? '📦 Khác' : '📦 Other',
+              trip: t('auto.trip'),
+              home: t('auto.home'),
+              office: t('auto.office'),
+              couple: t('auto.couple'),
+              other: t('auto.other'),
             };
             return (
               <button
@@ -141,10 +143,10 @@ export const Groups: React.FC = () => {
           className="w-1/2"
           disabled={createMutation.isPending}
         >
-          {language === 'vi' ? 'Hủy bỏ' : 'Cancel'}
+          {t('auto.cancel')}
         </Button>
         <Button type="submit" variant="primary" className="w-1/2 font-bold" disabled={createMutation.isPending} leftIcon={createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}>
-          {createMutation.isPending ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') : (language === 'vi' ? 'Tạo nhóm' : 'Create Group')}
+          {createMutation.isPending ? (t('auto.creating')) : (t('auto.createGroup'))}
         </Button>
       </div>
     </form>
@@ -158,10 +160,10 @@ export const Groups: React.FC = () => {
         <div>
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Users className="w-6 h-6 text-primary-500" />
-            {language === 'vi' ? 'Nhóm Chi Tiêu' : 'Billing Groups'}
+            {t('auto.billingGroups')}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            {language === 'vi' ? 'Quản lý và chia sẻ hóa đơn nhóm của bạn' : 'Manage your group expenses effortlessly'}
+            {t('auto.manageYourGroupExpensesEffortlessly')}
           </p>
         </div>
 
@@ -170,7 +172,7 @@ export const Groups: React.FC = () => {
           className="font-bold flex items-center gap-1.5 rounded-xl shadow-md"
           leftIcon={<Plus className="w-4 h-4 stroke-[2.5px]" />}
         >
-          {language === 'vi' ? 'Tạo nhóm' : 'Create'}
+          {t('auto.create')}
         </Button>
       </div>
 
@@ -178,7 +180,7 @@ export const Groups: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
         {/* Search input */}
         <Input
-          placeholder={language === 'vi' ? 'Tìm kiếm nhóm chi tiêu...' : 'Search groups...'}
+          placeholder={t('auto.searchGroups')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           leftIcon={<Search className="w-4 h-4 text-slate-400" />}
@@ -212,9 +214,9 @@ export const Groups: React.FC = () => {
       {/* Groups Grid List with Framer Motion Layout animations */}
       {filteredGroups.length === 0 ? (
         <EmptyState
-          title={language === 'vi' ? 'Không tìm thấy nhóm' : 'No groups found'}
-          description={language === 'vi' ? 'Thử tìm kiếm với từ khóa khác hoặc tạo nhóm mới ngay hôm nay.' : 'Try search with other terms or create a new billing group!'}
-          actionLabel={language === 'vi' ? 'Tạo nhóm mới' : 'Create New Group'}
+          title={t('auto.noGroupsFound')}
+          description={t('auto.trySearchWithOtherTermsOr')}
+          actionLabel={t('auto.createNewGroup')}
           onAction={() => setIsCreateOpen(true)}
         />
       ) : (
@@ -244,7 +246,7 @@ export const Groups: React.FC = () => {
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title={language === 'vi' ? 'Tạo Nhóm Mới' : 'Create New Group'}
+        title={t('auto.createNewGroup')}
         size="md"
       >
         {createGroupForm}

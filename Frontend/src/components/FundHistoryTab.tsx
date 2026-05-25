@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useMemo } from 'react';
 import { Card } from './Card';
 import { Avatar } from './Avatar';
@@ -13,7 +14,8 @@ interface FundHistoryTabProps {
 }
 
 export const FundHistoryTab: React.FC<FundHistoryTabProps> = ({ group }) => {
-  const { language, currency } = useAppStore();
+  const { t } = useTranslation();
+  const { currency } = useAppStore();
 
   const history = useMemo(() => {
     return [...(group.fundHistory || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -37,10 +39,10 @@ export const FundHistoryTab: React.FC<FundHistoryTabProps> = ({ group }) => {
           </div>
           <div>
             <h4 className="font-bold text-slate-700 dark:text-slate-200">
-              {language === 'vi' ? 'Chưa có giao dịch quỹ nào 👋' : 'No fund history yet 👋'}
+              {t('auto.noFundHistoryYet')}
             </h4>
             <p className="text-xs text-slate-500 mt-1">
-              {language === 'vi' ? 'Chủ nhóm chưa thêm quỹ nào.' : 'The group owner hasn\'t added any funds yet.'}
+              {t('auto.theGroupOwnerHasntAddedAnyFundsYet')}
             </p>
           </div>
         </Card>
@@ -70,7 +72,7 @@ export const FundHistoryTab: React.FC<FundHistoryTabProps> = ({ group }) => {
                       <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{tx.userName}</span>
                       <div className="flex items-center gap-1 text-[10px] sm:text-xs text-slate-500">
                         <Calendar className="w-3 h-3" />
-                        <span>{new Date(tx.date).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{new Date(tx.date).toLocaleDateString(t('auto.enUs'), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     </div>
                   </div>
@@ -80,7 +82,7 @@ export const FundHistoryTab: React.FC<FundHistoryTabProps> = ({ group }) => {
                 </div>
                 {tx.note && (
                   <div className="text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                    <span className="font-semibold text-slate-700 dark:text-slate-400 mr-2">{language === 'vi' ? 'Ghi chú:' : 'Note:'}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-400 mr-2">{t('auto.note')}</span>
                     {tx.note}
                   </div>
                 )}

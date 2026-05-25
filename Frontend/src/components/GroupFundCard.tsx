@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Card } from './Card';
 import { Button } from './Button';
@@ -13,6 +14,7 @@ interface GroupFundCardProps {
 }
 
 export const GroupFundCard: React.FC<GroupFundCardProps> = ({ group, onAddFund }) => {
+  const { t } = useTranslation();
   const { language, currency } = useAppStore();
   const user = useAuthStore(state => state.user);
 
@@ -34,16 +36,16 @@ export const GroupFundCard: React.FC<GroupFundCardProps> = ({ group, onAddFund }
           </div>
           <div>
             <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm sm:text-base">
-              {language === 'vi' ? 'Quỹ Nhóm' : 'Shared Wallet'}
+              {t('auto.sharedWallet')}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {language === 'vi' ? 'Quản lý ngân sách chung' : 'Manage common budget'}
+              {t('auto.manageCommonBudget')}
             </p>
           </div>
         </div>
         {isOwner && (
           <Button size="sm" onClick={onAddFund} leftIcon={<Plus className="w-4 h-4" />} className="font-bold shadow-sm">
-            {language === 'vi' ? 'Thêm Quỹ' : 'Add Fund'}
+            {t('auto.addFund')}
           </Button>
         )}
       </div>
@@ -51,7 +53,7 @@ export const GroupFundCard: React.FC<GroupFundCardProps> = ({ group, onAddFund }
       <div className="grid grid-cols-2 gap-4 mt-2">
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-            {language === 'vi' ? 'Đã Nạp' : 'Initial Fund'}
+            {t('auto.initialFund')}
           </span>
           <span className="font-black text-slate-800 dark:text-slate-100 text-sm sm:text-base">
             {formatCurrency(totalFundAdded, currency)}
@@ -59,7 +61,7 @@ export const GroupFundCard: React.FC<GroupFundCardProps> = ({ group, onAddFund }
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-            {language === 'vi' ? 'Đã Chi' : 'Total Expenses'}
+            {t('auto.totalExpenses')}
           </span>
           <span className="font-black text-slate-800 dark:text-slate-100 text-sm sm:text-base">
             {formatCurrency(totalBillsAmount, currency)}
@@ -70,7 +72,7 @@ export const GroupFundCard: React.FC<GroupFundCardProps> = ({ group, onAddFund }
       <div className={`mt-2 p-3 sm:p-4 rounded-xl flex items-center justify-between ${isNegative ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800'}`}>
         <div className="flex flex-col">
           <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest ${isNegative ? 'text-rose-100' : 'text-slate-500 dark:text-slate-400'}`}>
-            {language === 'vi' ? 'Còn Lại' : 'Remaining Balance'}
+            {t('auto.remainingBalance')}
           </span>
           <span className={`text-lg sm:text-2xl font-black mt-0.5 ${isNegative ? 'text-white' : (isZero ? 'text-slate-800 dark:text-slate-100' : 'text-emerald-500')}`}>
             {isNegative ? "-" + formatCurrency(Math.abs(remainingBalance), currency) : formatCurrency(remainingBalance, currency)}

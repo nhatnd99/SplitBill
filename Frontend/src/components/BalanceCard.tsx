@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import type { UserBalance } from '../types';
 import { Avatar } from './Avatar';
@@ -16,6 +17,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   onSettleUp,
   showAction = true,
 }) => {
+  const { t } = useTranslation();
   const { currency, language } = useAppStore();
 
   const formatCurrency = (val: number) => {
@@ -45,17 +47,17 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             {isSettled ? (
               <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1 font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                {language === 'vi' ? 'Đã thanh toán hết' : 'All settled up'}
+                {t('auto.allSettledUp')}
               </span>
             ) : isOwed ? (
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
                 <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
-                {language === 'vi' ? 'Nợ bạn' : 'owes you'}
+                {t('auto.owesYou')}
               </span>
             ) : (
               <span className="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-0.5">
                 <ArrowDownLeft className="w-3.5 h-3.5 shrink-0" />
-                {language === 'vi' ? 'Bạn nợ' : 'you owe'}
+                {t('auto.youOwe')}
               </span>
             )}
           </div>
@@ -84,8 +86,8 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             className="rounded-xl px-3 py-1.5 text-xs font-bold"
           >
             {isOwed
-              ? language === 'vi' ? 'Đòi tiền' : 'Remind'
-              : language === 'vi' ? 'Trả nợ' : 'Settle Up'
+              ? t('auto.remind')
+              : t('auto.settleUp')
             }
           </Button>
         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import type { Group } from '../types';
 import { Avatar } from './Avatar';
@@ -5,6 +6,7 @@ import { Card } from './Card';
 import { Badge } from './Badge';
 import { Folder, MapPin, Home, Briefcase, Coffee } from 'lucide-react';
 import { useAppStore } from '../store';
+import { getCategoryLabel } from '../utils/formatters';
 
 interface GroupCardProps {
   group: Group;
@@ -12,6 +14,7 @@ interface GroupCardProps {
 }
 
 export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick }) => {
+  const { t } = useTranslation();
   const { currency, language } = useAppStore();
 
   const getCategoryIcon = (category: string) => {
@@ -29,25 +32,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick }) => {
     }
   };
 
-  const getCategoryLabel = (category: string) => {
-    if (language === 'vi') {
-      switch (category) {
-        case 'trip': return 'Du lịch';
-        case 'home': return 'Nhà cửa';
-        case 'office': return 'Văn phòng';
-        case 'couple': return 'Cặp đôi';
-        default: return 'Khác';
-      }
-    } else {
-      switch (category) {
-        case 'trip': return 'Trip';
-        case 'home': return 'Home';
-        case 'office': return 'Office';
-        case 'couple': return 'Couple';
-        default: return 'Other';
-      }
-    }
-  };
+
 
   const formatCurrency = (val: number) => {
     if (currency === 'VND') {
@@ -75,7 +60,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick }) => {
         <div className="absolute top-3 left-3">
           <Badge variant="primary" className="flex items-center gap-1 glass backdrop-blur-md bg-white/80 border-none shadow-sm dark:bg-slate-900/80 text-primary-600 dark:text-primary-400">
             {getCategoryIcon(group.category)}
-            <span>{getCategoryLabel(group.category)}</span>
+            <span>{getCategoryLabel(group.category, language)}</span>
           </Badge>
         </div>
       </div>
@@ -116,7 +101,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onClick }) => {
             {/* Total Expense Summary */}
             <div className="text-right">
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 block uppercase tracking-wider">
-                {language === 'vi' ? 'Tổng chi tiêu' : 'Total spent'}
+                {t('auto.totalSpent')}
               </span>
               <span className="text-sm font-extrabold text-primary-500">
                 {formatCurrency(group.totalExpense)}

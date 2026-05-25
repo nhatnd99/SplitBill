@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
@@ -14,6 +15,7 @@ import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 export const Landing: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { language } = useAppStore();
   const setAuth = useAuthStore(state => state.setAuth);
@@ -66,7 +68,7 @@ export const Landing: React.FC = () => {
     },
     onSuccess: (group) => {
       useAppStore.getState().addJoinedGroup(group);
-      toast.success(language === 'vi' ? 'Tạo nhóm thành công!' : 'Group created successfully!');
+      toast.success(t('auto.groupCreatedSuccessfully'));
       navigate(`/groups/${group.id}`);
     },
     onError: (error: any) => {
@@ -111,7 +113,7 @@ export const Landing: React.FC = () => {
             Antigravity <span className="gradient-text">Split</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium">
-            {language === 'vi' ? 'Chia sẻ hóa đơn nhanh chóng qua API' : 'Split expenses instantly over real API'}
+            {t('auto.splitExpensesInstantlyOverRealApi')}
           </p>
         </div>
 
@@ -120,7 +122,7 @@ export const Landing: React.FC = () => {
           {/* Identity Step */}
           <div className="mb-6">
             <Input
-              label={language === 'vi' ? 'Tên hiển thị của bạn' : 'Your display name'}
+              label={t('auto.yourDisplayName')}
               placeholder="e.g. John Doe"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
@@ -131,7 +133,7 @@ export const Landing: React.FC = () => {
             
             <div className="mt-4">
               <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 px-1 mb-2 block">
-                {language === 'vi' ? 'Chọn màu đại diện' : 'Pick avatar color'}
+                {t('auto.pickAvatarColor')}
               </label>
               <div className="flex gap-2 justify-between">
                 {colors.map((c) => (
@@ -155,7 +157,7 @@ export const Landing: React.FC = () => {
               onClick={() => setActiveTab('join')}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'join' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
-              {language === 'vi' ? 'Tham gia nhóm' : 'Join Group'}
+              {t('auto.joinGroup')}
             </button>
             <button
               type="button"
@@ -163,14 +165,14 @@ export const Landing: React.FC = () => {
               onClick={() => setActiveTab('create')}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'create' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
-              {language === 'vi' ? 'Tạo nhóm mới' : 'Create Group'}
+              {t('auto.createGroup')}
             </button>
           </div>
 
           {activeTab === 'join' ? (
             <form onSubmit={handleJoin} className="flex flex-col gap-4">
               <Input
-                placeholder={language === 'vi' ? 'Nhập mã nhóm (VD: DN2026)' : 'Enter invite code (e.g. DN2026)'}
+                placeholder={t('auto.enterInviteCodeEGDn2026')}
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 className="uppercase font-bold tracking-widest text-center"
@@ -180,27 +182,27 @@ export const Landing: React.FC = () => {
               />
               <Button disabled={isPending} type="submit" className="w-full h-12 text-base font-bold shadow-lg" leftIcon={joinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}>
                 {joinMutation.isPending 
-                  ? (language === 'vi' ? 'Đang kết nối...' : 'Connecting...') 
-                  : (language === 'vi' ? 'Tham Gia Ngay' : 'Join Now')}
+                  ? (t('auto.connecting')) 
+                  : (t('auto.joinNow'))}
               </Button>
             </form>
           ) : (
             <form onSubmit={handleCreate} className="flex flex-col gap-4">
               <Input
-                placeholder={language === 'vi' ? 'Tên nhóm (VD: Đi Đà Lạt)' : 'Group Name (e.g. Da Lat Trip)'}
+                placeholder={t('auto.groupNameEGDaLat')}
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
                 required
                 disabled={isPending}
               />
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" disabled={isPending} onClick={() => setCategory('trip')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'trip' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{language === 'vi' ? '🌴 Du lịch' : '🌴 Trip'}</button>
-                <button type="button" disabled={isPending} onClick={() => setCategory('home')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'home' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{language === 'vi' ? '🏠 Nhà cửa' : '🏠 Home'}</button>
+                <button type="button" disabled={isPending} onClick={() => setCategory('trip')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'trip' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{t('auto.trip')}</button>
+                <button type="button" disabled={isPending} onClick={() => setCategory('home')} className={`p-2 rounded-xl text-xs font-bold border ${category === 'home' ? 'bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400' : 'border-slate-200 dark:border-slate-700'}`}>{t('auto.home')}</button>
               </div>
               <Button disabled={isPending} type="submit" className="w-full h-12 text-base font-bold shadow-lg mt-2" leftIcon={createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
                 {createMutation.isPending 
-                  ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') 
-                  : (language === 'vi' ? 'Tạo Nhóm Mới' : 'Create New Group')}
+                  ? (t('auto.creating')) 
+                  : (t('auto.createNewGroup'))}
               </Button>
             </form>
           )}
@@ -209,7 +211,7 @@ export const Landing: React.FC = () => {
         
         <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>{language === 'vi' ? 'Cloud Sync & Realtime Updates' : 'Cloud Sync & Realtime Updates'}</span>
+          <span>{t('auto.cloudSyncRealtimeUpdates')}</span>
         </div>
       </motion.div>
     </div>

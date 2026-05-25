@@ -11,12 +11,15 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { CreateBillFlow } from '../components/features/CreateBillFlow';
 import { useAuthStore } from '../store/useAuthStore';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export const MainLayout: React.FC = () => {
   const { 
-    theme, setTheme, toasts, removeToast, language, 
+    theme, setTheme, toasts, removeToast, 
     joinedGroups, addToast
   } = useAppStore();
+  const { t } = useTranslation();
   
   const { user, logout } = useAuthStore();
   
@@ -32,7 +35,7 @@ export const MainLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    addToast(language === 'vi' ? 'Đã đăng xuất thành công' : 'Logged out successfully', 'info');
+    addToast(t('common.loggedOutSuccessfully'), 'info');
     navigate('/welcome');
   };
 
@@ -43,10 +46,10 @@ export const MainLayout: React.FC = () => {
   };
 
   const navItems = [
-    { id: 'dashboard', label: language === 'vi' ? 'Tổng quan' : 'Dashboard', path: '/', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { id: 'groups', label: language === 'vi' ? 'Nhóm của tôi' : 'My Groups', path: '/groups', icon: <FolderHeart className="w-5 h-5" /> },
-    { id: 'activities', label: language === 'vi' ? 'Lịch sử' : 'Activities', path: '/activities', icon: <History className="w-5 h-5" /> },
-    { id: 'profile', label: language === 'vi' ? 'Cài đặt' : 'Profile', path: '/profile', icon: <User2 className="w-5 h-5" /> },
+    { id: 'dashboard', label: t('navbar.dashboard'), path: '/', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: 'groups', label: t('navbar.groups'), path: '/groups', icon: <FolderHeart className="w-5 h-5" /> },
+    { id: 'activities', label: t('navbar.activities'), path: '/activities', icon: <History className="w-5 h-5" /> },
+    { id: 'profile', label: t('navbar.profile'), path: '/profile', icon: <User2 className="w-5 h-5" /> },
   ];
 
   const getToastIcon = (type: Toast['type']) => {
@@ -133,6 +136,7 @@ export const MainLayout: React.FC = () => {
                 </div>
               )}
             </button>
+            <LanguageSwitcher />
           </div>
 
           <Button
@@ -142,7 +146,7 @@ export const MainLayout: React.FC = () => {
             className="w-full justify-start text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl"
             leftIcon={<LogOut className="w-4 h-4" />}
           >
-            {language === 'vi' ? 'Đăng xuất' : 'Sign Out'}
+            {t('navbar.signOut')}
           </Button>
         </div>
       </aside>
@@ -176,6 +180,7 @@ export const MainLayout: React.FC = () => {
           <Link to="/profile">
             <Avatar src={user.avatarUrl} name={user.name} avatarColor={user.avatarColor} size="sm" />
           </Link>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -222,7 +227,7 @@ export const MainLayout: React.FC = () => {
         className="hidden md:flex fixed bottom-6 right-6 p-4 rounded-2xl bg-gradient-to-tr from-primary-500 to-accent-500 text-white shadow-xl shadow-primary-500/10 hover:shadow-primary-500/30 hover:scale-105 transition-all active:scale-95 items-center gap-2 cursor-pointer z-40 select-none font-bold"
       >
         <Plus className="w-5 h-5 stroke-[2.5px]" />
-        <span>{language === 'vi' ? 'Thêm chi phí' : 'Add Expense'}</span>
+        <span>{t('common.addExpense')}</span>
       </button>
 
       {/* 6. Toast Notification Portal */}
@@ -257,13 +262,13 @@ export const MainLayout: React.FC = () => {
       <Modal
         isOpen={isAddExpenseOpen}
         onClose={() => setIsAddExpenseOpen(false)}
-        title={language === 'vi' ? 'Thêm Chi Phí Mới' : 'Add New Expense'}
+        title={t('common.addNewExpense')}
         size="md"
       >
         {joinedGroups.length === 0 ? (
           <div className="text-center p-6">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {language === 'vi' ? 'Bạn cần tạo một nhóm trước khi thêm chi phí!' : 'You must create a group before adding an expense!'}
+              {t('common.createGroupBeforeExpense')}
             </p>
           </div>
         ) : (

@@ -15,8 +15,11 @@ import { useMutation } from '@tanstack/react-query';
 import { groupsApi } from '../api/groups.api';
 import toast from 'react-hot-toast';
 
+import { useTranslation } from 'react-i18next';
+
 export const Dashboard: React.FC = () => {
-  const { language, theme, setTheme, joinedGroups, addJoinedGroup } = useAppStore();
+  const { theme, setTheme, joinedGroups, addJoinedGroup } = useAppStore();
+  const { t } = useTranslation();
   const user = useAuthStore(state => state.user);
   const navigate = useNavigate();
 
@@ -137,10 +140,10 @@ export const Dashboard: React.FC = () => {
           {/* Greeting */}
           <motion.div variants={item} className="pt-2">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-              {language === 'vi' ? `Chào ${user.name.split(' ')[0]} 👋` : `Hello ${user.name.split(' ')[0]} 👋`}
+              {t('dashboard.greeting', { name: user.name.split(' ')[0] })}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {language === 'vi' ? 'Sẵn sàng chia sẻ chi phí cùng bạn bè chưa?' : 'Ready to share expenses with friends?'}
+              {t('dashboard.readyToShare')}
             </p>
           </motion.div>
 
@@ -155,10 +158,10 @@ export const Dashboard: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100">
-                  {language === 'vi' ? 'Vào Nhóm' : 'Join Group'}
+                  {t('dashboard.joinGroup')}
                 </h3>
                 <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 hidden sm:block">
-                  {language === 'vi' ? 'Bằng mã mời' : 'With invite code'}
+                  {t('dashboard.withInviteCode')}
                 </p>
               </div>
             </button>
@@ -172,10 +175,10 @@ export const Dashboard: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100">
-                  {language === 'vi' ? 'Tạo Nhóm' : 'Create Group'}
+                  {t('dashboard.createGroup')}
                 </h3>
                 <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 hidden sm:block">
-                  {language === 'vi' ? 'Bắt đầu chia sẻ' : 'Start sharing'}
+                  {t('dashboard.startSharing')}
                 </p>
               </div>
             </button>
@@ -186,10 +189,10 @@ export const Dashboard: React.FC = () => {
             <motion.div variants={item} className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-widest">
-                  {language === 'vi' ? 'Nhóm Của Bạn' : 'Recent Groups'}
+                  {t('dashboard.recentGroups')}
                 </h3>
                 <Link to="/groups" className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-0.5">
-                  {language === 'vi' ? 'Tất cả' : 'View All'}
+                  {t('dashboard.viewAll')}
                   <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -202,14 +205,14 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-700 dark:text-slate-200">
-                      {language === 'vi' ? 'Bạn chưa có nhóm nào 👋' : 'You haven’t joined any groups yet 👋'}
+                      {t('dashboard.noGroupsYet')}
                     </h4>
                     <p className="text-xs text-slate-500 mt-1">
-                      {language === 'vi' ? 'Tạo nhóm mới hoặc nhập mã mời để bắt đầu.' : 'Create a new group or enter an invite code to start.'}
+                      {t('dashboard.createOrEnterCode')}
                     </p>
                   </div>
                   <Button onClick={() => setIsCreateOpen(true)} className="mt-2 shadow-sm font-bold" size="sm">
-                    {language === 'vi' ? 'Tạo Nhóm Ngay' : 'Create a Group'}
+                    {t('dashboard.createGroupNow')}
                   </Button>
                 </Card>
               ) : (
@@ -228,7 +231,7 @@ export const Dashboard: React.FC = () => {
                                 {group.name}
                               </h4>
                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                                {group.members?.length || 1} {language === 'vi' ? 'thành viên' : 'members'}
+                                {t('dashboard.membersCount', { count: group.members?.length || 1 })}
                               </p>
                             </div>
                           </div>
@@ -244,12 +247,12 @@ export const Dashboard: React.FC = () => {
             {/* 4. RECENT ACTIVITY FEED */}
             <motion.div variants={item} className="flex flex-col gap-4 mt-2">
               <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-widest">
-                {language === 'vi' ? 'Hoạt Động Mới Nhất' : 'Recent Activity'}
+                {t('dashboard.recentActivity')}
               </h3>
 
               {true ? (
                 <p className="text-sm text-slate-500">
-                  {language === 'vi' ? 'Tính năng đang được phát triển.' : 'Feature under development.'}
+                  {t('dashboard.featureDev')}
                 </p>
               ) : null}
             </motion.div>
@@ -259,10 +262,10 @@ export const Dashboard: React.FC = () => {
       </main>
 
       {/* Modals for Quick Actions */}
-      <Modal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} title={language === 'vi' ? 'Tham Gia Nhóm' : 'Join Group'} size="sm">
+      <Modal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} title={t('dashboard.joinGroupTitle')} size="sm">
         <form onSubmit={handleJoinGroup} className="flex flex-col gap-4">
           <Input
-            placeholder={language === 'vi' ? 'Nhập mã mời (VD: DN2026)' : 'Enter invite code (e.g. DN2026)'}
+            placeholder={t('dashboard.enterInviteCode')}
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
             className="uppercase font-bold tracking-widest text-center"
@@ -271,22 +274,22 @@ export const Dashboard: React.FC = () => {
             disabled={joinMutation.isPending}
           />
           <Button disabled={joinMutation.isPending} type="submit" className="w-full h-12 font-bold shadow-md" leftIcon={joinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}>
-            {joinMutation.isPending ? (language === 'vi' ? 'Đang kết nối...' : 'Connecting...') : (language === 'vi' ? 'Tham Gia Ngay' : 'Join Now')}
+            {joinMutation.isPending ? t('dashboard.connecting') : t('dashboard.joinNow')}
           </Button>
         </form>
       </Modal>
 
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title={language === 'vi' ? 'Tạo Nhóm Mới' : 'Create Group'} size="sm">
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title={t('dashboard.createGroupTitle')} size="sm">
         <form onSubmit={handleCreateGroup} className="flex flex-col gap-4">
           <Input
-            placeholder={language === 'vi' ? 'Tên nhóm (VD: Đi Đà Lạt)' : 'Group Name (e.g. Da Lat Trip)'}
+            placeholder={t('dashboard.groupNamePlaceholder')}
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
             required
             disabled={createMutation.isPending}
           />
           <Button disabled={createMutation.isPending} type="submit" className="w-full h-12 font-bold shadow-md" leftIcon={createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
-            {createMutation.isPending ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') : (language === 'vi' ? 'Tạo Nhóm' : 'Create Group')}
+            {createMutation.isPending ? t('dashboard.creating') : t('dashboard.createGroup')}
           </Button>
         </form>
       </Modal>

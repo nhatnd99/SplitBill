@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
 import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
@@ -30,7 +31,8 @@ export const GroupDetail: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { language, currency, addToast } = useAppStore();
+  const { currency, addToast } = useAppStore();
+  const { t } = useTranslation();
   const user = useAuthStore(state => state.user);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'bills' | 'settlements' | 'members' | 'fund'>('overview');
@@ -62,7 +64,7 @@ export const GroupDetail: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => billsApi.deleteExpense(id!, expenseId),
     onSuccess: () => {
-      toast.success(language === 'vi' ? 'Đã xóa hóa đơn' : 'Bill deleted');
+      toast.success(t('groupDetail.billDeleted'));
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses(id!) });
       queryClient.invalidateQueries({ queryKey: queryKeys.balances(id!) });
       queryClient.invalidateQueries({ queryKey: queryKeys.group(id!) });
@@ -78,7 +80,7 @@ export const GroupDetail: React.FC = () => {
     mutationFn: ({ recipientId, amount }: { recipientId: string, amount: number }) => 
       settlementsApi.settleDebt(id!, recipientId, amount),
     onSuccess: () => {
-      toast.success(language === 'vi' ? 'Đã đánh dấu thanh toán!' : 'Settlement marked as paid!');
+      toast.success(t('groupDetail.settlementPaid'));
       queryClient.invalidateQueries({ queryKey: queryKeys.balances(id!) });
     },
     onError: (error: any) => {
@@ -99,7 +101,7 @@ export const GroupDetail: React.FC = () => {
     };
 
     socket.on('member:joined', (data: any) => {
-      toast.success(`${data.userName} ${language === 'vi' ? 'đã tham gia nhóm!' : 'joined the group!'}`);
+      toast.success(`${data.userName} ${t('groupDetail.joinedGroup')}`);
       queryClient.invalidateQueries({ queryKey: queryKeys.group(id) });
     });
     socket.on('fund:updated', () => {
@@ -117,7 +119,7 @@ export const GroupDetail: React.FC = () => {
       socket.off('bill:deleted');
       socket.off('settlement:updated');
     };
-  }, [id, queryClient, language]);
+  }, [id, queryClient, t]);
 
   const group = groupData?.data?.group;
   const groupExpenses = expensesData?.data?.expenses || [];
@@ -136,8 +138,8 @@ export const GroupDetail: React.FC = () => {
   if (!group || !user) {
     return (
       <div className="p-8 text-center bg-slate-50 dark:bg-[#090d16] min-h-screen">
-        <p className="text-slate-500">{language === 'vi' ? 'Không tìm thấy nhóm' : 'Group not found'}</p>
-        <Button onClick={() => navigate('/')} className="mt-4">{language === 'vi' ? 'Quay lại' : 'Go back'}</Button>
+        <p className="text-slate-500">{t('groupDetail.groupNotFound')}</p>
+        <Button onClick={() => navigate('/')} className="mt-4">{t('groupDetail.goBack')}</Button>
       </div>
     );
   }
@@ -155,7 +157,7 @@ export const GroupDetail: React.FC = () => {
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(group.inviteCode);
     setIsCopied(true);
-    addToast(language === 'vi' ? 'Đã sao chép mã mời!' : 'Invite code copied!', 'success');
+    addToast(t('groupDetail.inviteCopied'), 'success');
     setTimeout(() => setIsCopied(false), 2000);
   };
 
@@ -178,11 +180,11 @@ export const GroupDetail: React.FC = () => {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
 
-      let key = date.toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric' });
+      let key = date.toLocaleDateString(t('auto.enUs'), { month: 'short', day: 'numeric' });
       if (date.toDateString() === today.toDateString()) {
-        key = language === 'vi' ? 'Hôm nay' : 'Today';
+        key = t('groupDetail.today');
       } else if (date.toDateString() === yesterday.toDateString()) {
-        key = language === 'vi' ? 'Hôm qua' : 'Yesterday';
+        key = t('groupDetail.yesterday');
       }
 
       if (!grouped[key]) grouped[key] = [];
@@ -209,7 +211,7 @@ export const GroupDetail: React.FC = () => {
                 {group.name}
               </h1>
               <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {group.members.length} {language === 'vi' ? 'thành viên' : 'members'}
+                {t('groupDetail.membersCount', { count: group.members.length })}
               </p>
             </div>
           </div>
@@ -220,7 +222,7 @@ export const GroupDetail: React.FC = () => {
           >
             {isCopied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             <span className="hidden sm:inline">
-              {language === 'vi' ? 'Mã mời' : 'Invite'}: {group.inviteCode}
+              {t('groupDetail.invite')}: {group.inviteCode}
             </span>
             <span className="sm:hidden">{group.inviteCode}</span>
           </button>
@@ -236,7 +238,7 @@ export const GroupDetail: React.FC = () => {
               }`}
           >
             <PieChart className="w-4 h-4" />
-            {language === 'vi' ? 'Tổng Quan' : 'Overview'}
+            {t('groupDetail.tabOverview')}
           </button>
           <button
             onClick={() => setActiveTab('bills')}
@@ -246,7 +248,7 @@ export const GroupDetail: React.FC = () => {
               }`}
           >
             <Receipt className="w-4 h-4" />
-            {language === 'vi' ? 'Hóa Đơn' : 'Expenses'}
+            {t('groupDetail.tabExpenses')}
           </button>
           <button
             onClick={() => setActiveTab('settlements')}
@@ -256,7 +258,7 @@ export const GroupDetail: React.FC = () => {
               }`}
           >
             <Wallet className="w-4 h-4" />
-            {language === 'vi' ? 'Thanh Toán' : 'Settlements'}
+            {t('groupDetail.tabSettlements')}
           </button>
           <button
             onClick={() => setActiveTab('members')}
@@ -266,7 +268,7 @@ export const GroupDetail: React.FC = () => {
               }`}
           >
             <Users className="w-4 h-4" />
-            {language === 'vi' ? 'Thành Viên' : 'Members'}
+            {t('groupDetail.tabMembers')}
           </button>
           <button
             onClick={() => setActiveTab('fund')}
@@ -276,7 +278,7 @@ export const GroupDetail: React.FC = () => {
               }`}
           >
             <Wallet className="w-4 h-4" />
-            {language === 'vi' ? 'Lịch Sử Quỹ' : 'Fund History'}
+            {t('groupDetail.tabFundHistory')}
           </button>
         </div>
       </header>
@@ -303,7 +305,7 @@ export const GroupDetail: React.FC = () => {
                       <DollarSign className="w-5 h-5" />
                     </div>
                   </div>
-                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">{language === 'vi' ? 'Tổng Chi Phí' : 'Total Expense'}</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">{t('groupDetail.totalExpense')}</p>
                   <h3 className="text-lg sm:text-2xl font-black text-slate-800 dark:text-slate-100 mt-1">{formatCurrency(group.totalExpense, currency)}</h3>
                 </Card>
 
@@ -313,7 +315,7 @@ export const GroupDetail: React.FC = () => {
                       <Receipt className="w-5 h-5" />
                     </div>
                   </div>
-                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">{language === 'vi' ? 'Tổng Hóa Đơn' : 'Total Bills'}</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">{t('groupDetail.totalBills')}</p>
                   <h3 className="text-lg sm:text-2xl font-black text-slate-800 dark:text-slate-100 mt-1">{groupExpenses.length}</h3>
                 </Card>
 
@@ -323,7 +325,7 @@ export const GroupDetail: React.FC = () => {
                       <Users className="w-5 h-5" />
                     </div>
                   </div>
-                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">{language === 'vi' ? 'Thành Viên' : 'Members'}</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">{t('groupDetail.tabMembers')}</p>
                   <h3 className="text-lg sm:text-2xl font-black text-slate-800 dark:text-slate-100 mt-1">{group.members.length}</h3>
                 </Card>
 
@@ -333,9 +335,9 @@ export const GroupDetail: React.FC = () => {
                       <Activity className="w-5 h-5" />
                     </div>
                   </div>
-                  <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'vi' ? 'Trạng Thái' : 'Status'}</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">{t('groupDetail.status')}</p>
                   <h3 className="text-lg sm:text-xl font-black text-white mt-1">
-                    {optimizedSettlements.length > 0 ? (language === 'vi' ? 'Còn nợ' : 'Pending') : (language === 'vi' ? 'Đã xong' : 'Settled')}
+                    {optimizedSettlements.length > 0 ? (t('groupDetail.pending')) : (t('groupDetail.settled'))}
                   </h3>
                 </Card>
               </div>
@@ -344,13 +346,13 @@ export const GroupDetail: React.FC = () => {
                 <motion.div variants={item} className="mt-2">
                   <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-l-4 border-l-orange-500 border-y-slate-100 border-r-slate-100 dark:border-y-slate-800 dark:border-r-slate-800">
                     <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                      <AlertTriangleIcon /> {language === 'vi' ? 'Cần Thanh Toán' : 'Action Required'}
+                      <AlertTriangleIcon /> {t('groupDetail.actionRequired')}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1">
-                      {language === 'vi' ? 'Nhóm còn ' : 'There are '} <span className="font-bold text-slate-700 dark:text-slate-300">{optimizedSettlements.length}</span> {language === 'vi' ? ' khoản cần thanh toán.' : ' pending settlements.'}
+                      {t('groupDetail.actionRequiredDesc', { count: optimizedSettlements.length }).split(optimizedSettlements.length.toString()).map((part, i) => (<React.Fragment key={i}>{i > 0 && <span className="font-bold text-slate-700 dark:text-slate-300">{optimizedSettlements.length}</span>}{part}</React.Fragment>))}
                     </p>
                     <Button size="sm" className="mt-3" onClick={() => setActiveTab('settlements')}>
-                      {language === 'vi' ? 'Xem chi tiết' : 'View Settlements'}
+                      {t('groupDetail.viewSettlements')}
                     </Button>
                   </Card>
                 </motion.div>
@@ -376,10 +378,10 @@ export const GroupDetail: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-700 dark:text-slate-200">
-                        {language === 'vi' ? 'Chưa có hóa đơn nào 👋' : 'No bills yet 👋'}
+                        {t('groupDetail.noBillsYet')}
                       </h4>
                       <p className="text-xs text-slate-500 mt-1">
-                        {language === 'vi' ? 'Thêm hóa đơn đầu tiên để bắt đầu chia sẻ.' : 'Add your first bill to start sharing.'}
+                        {t('groupDetail.addFirstBill')}
                       </p>
                     </div>
                   </Card>
@@ -409,7 +411,7 @@ export const GroupDetail: React.FC = () => {
                                     {bill.title}
                                   </h4>
                                   <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {creator?.name} • {new Date(bill.date).toLocaleTimeString(language === 'vi' ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                                    {creator?.name} • {new Date(bill.date).toLocaleTimeString(t('auto.enUs'), { hour: '2-digit', minute: '2-digit' })}
                                   </p>
                                 </div>
                               </div>
@@ -461,9 +463,7 @@ export const GroupDetail: React.FC = () => {
               <div className="bg-primary-50 dark:bg-primary-500/10 border border-primary-100 dark:border-primary-500/20 p-4 rounded-xl flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-primary-500 shrink-0 mt-0.5" />
                 <p className="text-sm text-primary-700 dark:text-primary-300 font-medium">
-                  {language === 'vi'
-                    ? 'Thuật toán tối ưu hóa của chúng tôi đã gộp các khoản nợ để giảm thiểu số lần chuyển tiền.'
-                    : 'Our optimization algorithm simplified the debts to minimize total transactions.'}
+                  {t('groupDetail.optimizationMsg')}
                 </p>
               </div>
 
@@ -475,10 +475,10 @@ export const GroupDetail: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-700 dark:text-slate-200">
-                        {language === 'vi' ? 'Đã thanh toán hết!' : 'All settled up!'}
+                        {t('groupDetail.allSettledUp')}
                       </h4>
                       <p className="text-xs text-slate-500 mt-1">
-                        {language === 'vi' ? 'Không còn ai nợ ai trong nhóm này.' : 'Nobody owes anything in this group.'}
+                        {t('groupDetail.nobodyOwes')}
                       </p>
                     </div>
                   </Card>
@@ -502,7 +502,7 @@ export const GroupDetail: React.FC = () => {
                                 <Avatar name={tx.payerName} avatarColor={tx.payerAvatar} size="md" />
                               </div>
                               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center line-clamp-1">
-                                {isMePayer ? (language === 'vi' ? 'Bạn' : 'You') : tx.payerName}
+                                {isMePayer ? (t('groupDetail.you')) : tx.payerName}
                               </span>
                             </div>
 
@@ -522,7 +522,7 @@ export const GroupDetail: React.FC = () => {
                                 <Avatar name={tx.recipientName} avatarColor={tx.recipientAvatar} size="md" />
                               </div>
                               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center line-clamp-1">
-                                {isMeRecipient ? (language === 'vi' ? 'Bạn' : 'You') : tx.recipientName}
+                                {isMeRecipient ? (t('groupDetail.you')) : tx.recipientName}
                               </span>
                             </div>
                           </div>
@@ -530,7 +530,7 @@ export const GroupDetail: React.FC = () => {
                           {/* Action Button */}
                           <div className="pt-3 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
                             <Button size="sm" onClick={() => handleSettle(tx)} className="shadow-sm" disabled={settleMutation.isPending}>
-                              {language === 'vi' ? 'Đánh dấu đã trả' : 'Mark as Paid'}
+                              {t('groupDetail.markAsPaid')}
                             </Button>
                           </div>
                         </Card>
@@ -569,7 +569,7 @@ export const GroupDetail: React.FC = () => {
                             )}
                           </span>
                           {member.id === user?.id && (
-                            <span className="text-[10px] text-slate-500">{language === 'vi' ? '(Bạn)' : '(You)'}</span>
+                            <span className="text-[10px] text-slate-500">{t('groupDetail.youLabel')}</span>
                           )}
                         </div>
                       </div>
@@ -582,14 +582,14 @@ export const GroupDetail: React.FC = () => {
                             </div>
                             <span className="text-[10px] text-slate-400 mt-0.5">
                               {balanceAmt > 0
-                                ? (language === 'vi' ? 'Được nhận' : 'Gets back')
-                                : (language === 'vi' ? 'Còn nợ' : 'Owes')
+                                ? (t('groupDetail.getsBack'))
+                                : (t('groupDetail.pending'))
                               }
                             </span>
                           </>
                         ) : (
                           <div className="text-xs text-slate-400 font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                            {language === 'vi' ? 'Đã thanh toán' : 'Settled'}
+                            {t('groupDetail.settled')}
                           </div>
                         )}
                       </div>
@@ -611,7 +611,7 @@ export const GroupDetail: React.FC = () => {
       <Modal
         isOpen={!!selectedBillId && !isDeleteDialogOpen}
         onClose={() => setSelectedBillId(null)}
-        title={language === 'vi' ? 'Chi tiết hóa đơn' : 'Bill Details'}
+        title={t('groupDetail.billDetails')}
         size="md"
       >
         {selectedBill && (
@@ -624,24 +624,24 @@ export const GroupDetail: React.FC = () => {
               <div className="text-2xl font-black text-primary-500">{formatCurrency(selectedBill.amount, currency)}</div>
 
               <div className="flex items-center gap-2 mt-4 text-xs text-slate-500 dark:text-slate-400">
-                <span>{new Date(selectedBill.date).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span>{new Date(selectedBill.date).toLocaleDateString(t('auto.enUs'), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 <span>•</span>
-                <span>{new Date(selectedBill.date).toLocaleTimeString(language === 'vi' ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{new Date(selectedBill.date).toLocaleTimeString(t('auto.enUs'), { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             </div>
 
             <div className="flex flex-col gap-3">
               <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest pl-1">
-                {language === 'vi' ? 'Chi tiết chia sẻ' : 'Split Details'}
+                {t('groupDetail.splitDetails')}
               </h3>
 
               <div className="flex flex-col gap-2">
                 {/* Paid By Row */}
                 <div className="flex flex-col gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <div className="text-xs font-semibold text-slate-500 mb-1">{language === 'vi' ? 'Nguồn thanh toán' : 'Payment Sources'}</div>
+                  <div className="text-xs font-semibold text-slate-500 mb-1">{t('groupDetail.paymentSources')}</div>
                   {selectedBill.paymentSources?.map((source: any, idx: number) => {
                     const isFund = source.type === 'GROUP_FUND';
-                    const memberName = isFund ? (language === 'vi' ? 'Quỹ Nhóm' : 'Group Fund') : (group.members.find((m: any) => m.id === source.memberId)?.name || 'Someone');
+                    const memberName = isFund ? (t('groupDetail.groupFund')) : (group.members.find((m: any) => m.id === source.memberId)?.name || 'Someone');
 
                     return (
                       <div key={idx} className="flex items-center justify-between">
@@ -688,16 +688,16 @@ export const GroupDetail: React.FC = () => {
                   leftIcon={<Trash2 className="w-4 h-4" />}
                   onClick={() => setIsDeleteDialogOpen(true)}
                 >
-                  {language === 'vi' ? 'Xóa' : 'Delete'}
+                  {t('common.delete')}
                 </Button>
                 <Button className="flex-1 font-bold" onClick={() => setSelectedBillId(null)}>
-                  {language === 'vi' ? 'Đóng' : 'Close'}
+                  {t('common.close')}
                 </Button>
               </div>
             )}
             {selectedBill.createdBy !== user.id && (
               <Button className="w-full font-bold" onClick={() => setSelectedBillId(null)}>
-                {language === 'vi' ? 'Đóng' : 'Close'}
+                {t('common.close')}
               </Button>
             )}
           </div>
@@ -708,21 +708,19 @@ export const GroupDetail: React.FC = () => {
       <Modal
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        title={language === 'vi' ? 'Xác nhận xóa' : 'Confirm Delete'}
+        title={t('groupDetail.confirmDelete')}
         size="sm"
       >
         <div className="flex flex-col gap-6">
           <div className="p-4 bg-rose-50 dark:bg-rose-500/10 rounded-xl text-rose-600 dark:text-rose-400 text-sm font-medium text-center border border-rose-100 dark:border-rose-500/20">
-            {language === 'vi'
-              ? 'Bạn có chắc chắn muốn xóa hóa đơn này? Hành động này không thể hoàn tác và sẽ cập nhật lại số dư của mọi người.'
-              : 'Are you sure you want to delete this bill? This cannot be undone and will recalculate everyone\'s balances.'}
+            {t('groupDetail.deleteWarning')}
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" className="flex-1 font-bold" onClick={() => setIsDeleteDialogOpen(false)} disabled={deleteMutation.isPending}>
-              {language === 'vi' ? 'Hủy' : 'Cancel'}
+              {t('common.cancel')}
             </Button>
             <Button className="flex-1 bg-rose-500 hover:bg-rose-600 font-bold shadow-md shadow-rose-500/20 text-white border-none" onClick={handleDeleteBill} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (language === 'vi' ? 'Xóa Hóa Đơn' : 'Delete Bill')}
+              {deleteMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (t('groupDetail.deleteBill'))}
             </Button>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 // Currency formatting utility — shared across the entire app
 export const formatCurrency = (val: number, currency: string = 'VND'): string => {
   const absVal = Math.abs(val);
@@ -14,6 +16,7 @@ export const formatCurrency = (val: number, currency: string = 'VND'): string =>
 
 // Relative time formatter
 export const formatRelativeTime = (dateStr: string, lang: string = 'vi'): string => {
+  const currentLang = i18n.language || lang;
   const now = new Date();
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
@@ -21,12 +24,12 @@ export const formatRelativeTime = (dateStr: string, lang: string = 'vi'): string
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return lang === 'vi' ? 'Vừa xong' : 'Just now';
-  if (diffMins < 60) return lang === 'vi' ? `${diffMins} phút trước` : `${diffMins}m ago`;
-  if (diffHours < 24) return lang === 'vi' ? `${diffHours} giờ trước` : `${diffHours}h ago`;
-  if (diffDays < 7) return lang === 'vi' ? `${diffDays} ngày trước` : `${diffDays}d ago`;
+  if (diffMins < 1) return i18n.t('time.justNow');
+  if (diffMins < 60) return i18n.t('time.minsAgo', { count: diffMins });
+  if (diffHours < 24) return i18n.t('time.hoursAgo', { count: diffHours });
+  if (diffDays < 7) return i18n.t('time.daysAgo', { count: diffDays });
   
-  return date.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US', {
+  return date.toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US', {
     day: 'numeric',
     month: 'short',
   });
@@ -34,8 +37,9 @@ export const formatRelativeTime = (dateStr: string, lang: string = 'vi'): string
 
 // Date formatter
 export const formatDate = (dateStr: string, lang: string = 'vi'): string => {
+  const currentLang = i18n.language || lang;
   const date = new Date(dateStr);
-  return date.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US', {
+  return date.toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US', {
     day: 'numeric',
     month: 'short',
   });
@@ -43,8 +47,9 @@ export const formatDate = (dateStr: string, lang: string = 'vi'): string => {
 
 // Full date formatter
 export const formatFullDate = (dateStr: string, lang: string = 'vi'): string => {
+  const currentLang = i18n.language || lang;
   const date = new Date(dateStr);
-  return date.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US', {
+  return date.toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -72,32 +77,19 @@ export const getCategoryEmoji = (category: string): string => {
   return map[category] || '💰';
 };
 
-export const getCategoryLabel = (category: string, lang: string = 'vi'): string => {
-  if (lang === 'vi') {
-    const map: Record<string, string> = {
-      food: 'Ăn uống', transport: 'Đi lại', bills: 'Hóa đơn', entertainment: 'Giải trí',
-      coffee: 'Cà phê', shopping: 'Mua sắm', other: 'Khác',
-    };
-    return map[category] || 'Khác';
+export const getCategoryLabel = (category: string, _lang: string = 'vi'): string => {
+  // We ignore _lang parameter now as i18next handles language internally
+  const validCategories = ['food', 'transport', 'bills', 'entertainment', 'coffee', 'shopping', 'other'];
+  if (validCategories.includes(category)) {
+    return i18n.t(`category.${category}`);
   }
-  const map: Record<string, string> = {
-    food: 'Food', transport: 'Transport', bills: 'Bills', entertainment: 'Entertainment',
-    coffee: 'Coffee', shopping: 'Shopping', other: 'Other',
-  };
-  return map[category] || 'Other';
+  return i18n.t('category.other');
 };
 
-export const getGroupCategoryLabel = (category: string, lang: string = 'vi'): string => {
-  if (lang === 'vi') {
-    const map: Record<string, string> = {
-      trip: '🌴 Du lịch', home: '🏠 Nhà cửa', office: '🍱 Văn phòng',
-      couple: '❤️ Cặp đôi', other: '📦 Khác',
-    };
-    return map[category] || '📦 Khác';
+export const getGroupCategoryLabel = (category: string, _lang: string = 'vi'): string => {
+  const validCategories = ['trip', 'home', 'office', 'couple', 'other'];
+  if (validCategories.includes(category)) {
+    return i18n.t(`groupCategory.${category}`);
   }
-  const map: Record<string, string> = {
-    trip: '🌴 Trip', home: '🏠 Home', office: '🍱 Office',
-    couple: '❤️ Couple', other: '📦 Other',
-  };
-  return map[category] || '📦 Other';
+  return i18n.t('groupCategory.other');
 };
